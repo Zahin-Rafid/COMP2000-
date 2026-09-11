@@ -8,7 +8,6 @@ import com.ecosystem.exceptions.*;
 import com.ecosystem.grid.BoundedResource;
 import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
-import com.ecosystem.model.entities.Herbivore;
 import com.ecosystem.model.entities.Plant;
 import com.ecosystem.model.genetics.Genome;
 

@@ -10,7 +10,6 @@ import java.awt.*;
  * and live dashboard. Runs the 60 FPS animation timer.
  */
 public class SimulationFrame extends JFrame {
-    private final Engine engine;
     private final SimulationPanel simulationPanel;
     private final StatisticsHUD statisticsHUD;
     private final ControlPanel controlPanel;
@@ -18,7 +17,6 @@ public class SimulationFrame extends JFrame {
 
     public SimulationFrame(Engine engine) {
         super("COMP2000 - Multi-Tier Ecosystem & Evolution Simulation");
-        this.engine = engine;
 
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
