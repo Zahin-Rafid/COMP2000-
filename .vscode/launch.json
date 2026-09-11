@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Simulation (Main)",
+            "request": "launch",
+            "mainClass": "com.ecosystem.Main",
+            "projectName": "COMP2000-"
+        },
+        {
+            "type": "java",
+            "name": "Run Verification Tests",
+            "request": "launch",
+            "mainClass": "com.ecosystem.EcosystemVerificationTest",
+            "projectName": "COMP2000-"
+        }
+    ]
+}
