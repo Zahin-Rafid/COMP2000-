@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>COMP2000 Multi-Tier Ecosystem UML Architecture</title>
+<style>
+  @page {
+    size: A3 landscape;
+    margin: 10mm;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    margin: 0;
+    padding: 20px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 25px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 15px;
+  }
+  .header h1 {
+    margin: 0 0 6px 0;
+    font-size: 26px;
+    color: #0f172a;
+    font-weight: 700;
+  }
+  .header p {
+    margin: 0;
+    font-size: 13px;
+    color: #64748b;
+  }
+  .diagram-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .package-group {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .package-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #3b82f6;
+    margin-bottom: 12px;
+    border-bottom: 1px dashed #cbd5e1;
+    padding-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .uml-class {
+    background: #ffffff;
+    border: 1.5px solid #334155;
+    border-radius: 6px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    font-size: 11px;
+  }
+  .uml-class.abstract {
+    border-color: #8b5cf6;
+  }
+  .uml-class.generic {
+    border-color: #059669;
+  }
+  .uml-class.exception {
+    border-color: #dc2626;
+  }
+  .uml-header {
+    padding: 8px 10px;
+    background: #f1f5f9;
+    border-bottom: 1px solid #cbd5e1;
+    text-align: center;
+  }
+  .uml-class.abstract .uml-header {
+    background: #ede9fe;
+  }
+  .uml-class.generic .uml-header {
+    background: #ecfdf5;
+  }
+  .uml-class.exception .uml-header {
+    background: #fef2f2;
+  }
+  .uml-stereotype {
+    font-style: italic;
+    font-size: 10px;
+    color: #64748b;
+  }
+  .uml-name {
+    font-weight: 700;
+    font-size: 12px;
+    color: #0f172a;
+  }
+  .uml-section {
+    padding: 6px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    line-height: 1.45;
+  }
+  .uml-section:last-child {
+    border-bottom: none;
+  }
+  .visibility {
+    font-weight: 700;
+    display: inline-block;
+    width: 12px;
+  }
+  .vis-pub { color: #16a34a; }
+  .vis-priv { color: #dc2626; }
+  .vis-prot { color: #d97706; }
+  .type {
+    color: #64748b;
+  }
+  .relationships-box {
+    grid-column: span 4;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 10px;
+  }
+  .rel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    font-size: 11px;
+  }
+  .rel-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .rel-card h4 {
+    margin: 0 0 6px 0;
+    color: #0f172a;
+    font-size: 12px;
+  }
+  .rel-card ul {
+    margin: 0;
+    padding-left: 16px;
+    color: #475569;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>COMP2000: Object Oriented Programming Practices</h1>
+  <p><strong>System Architecture & UML Design Diagram</strong> — Multi-Tier Ecosystem & Evolution Simulation</p>
+</div>
+
+<div class="diagram-container">
+
+  <!-- Column 1: Model & Organism Hierarchy -->
+  <div class="package-group">
+    <div class="package-title">📦 com.ecosystem.model</div>
+    
+    <div class="uml-class abstract">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;abstract&raquo;</div>
+        <div class="uml-name">Entity</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> id : <span class="type">long</span></div>
+        <div><span class="visibility vis-priv">-</span> position : <span class="type">Vector2D</span></div>
+        <div><span class="visibility vis-priv">-</span> alive : <span class="type">boolean</span></div>
+        <div><span class="visibility vis-priv">-</span> radius : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> color : <span class="type">Color</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> update(grid: SpatialGrid, dt: double)*</div>
+        <div><span class="visibility vis-pub">+</span> render(g: Graphics2D)*</div>
+        <div><span class="visibility vis-pub">+</span> markDead() : <span class="type">void</span></div>
+        <div><span class="visibility vis-prot">#</span> onDeath() : <span class="type">void</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class abstract">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;abstract&raquo; extends Entity</div>
+        <div class="uml-name">Organism</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> energy : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> maxEnergy : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> age : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> maxAge : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> reproductionThreshold : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> genome : <span class="type">Genome</span></div>
+        <div><span class="visibility vis-priv">-</span> generation : <span class="type">int</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> reproduce(grid: SpatialGrid)* : <span class="type">Organism</span></div>
+        <div><span class="visibility vis-pub">+</span> canReproduce() : <span class="type">boolean</span></div>
+        <div><span class="visibility vis-prot">#</span> burnBaseMetabolism(dt: double) : <span class="type">void</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class">
+      <div class="uml-header">
+        <div class="uml-stereotype">extends Entity</div>
+        <div class="uml-name">Carcass</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> biomass : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> decayTimer : <span class="type">double</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> harvestBiomass(amt: double) : <span class="type">double</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column 2: Specific Entities & Genetics -->
+  <div class="package-group">
+    <div class="package-title">📦 com.ecosystem.model.entities & genetics</div>
+
+    <div class="uml-class abstract">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;abstract&raquo; extends Organism</div>
+        <div class="uml-name">Animal</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> velocity : <span class="type">Vector2D</span></div>
+        <div><span class="visibility vis-priv">-</span> headingAngle : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> isSprinting : <span class="type">boolean</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-prot">#</span> calculateSteeringForce(t, mult) : <span class="type">Vector2D</span></div>
+        <div><span class="visibility vis-prot">#</span> calculateFleeForce(threat, mult) : <span class="type">Vector2D</span></div>
+        <div><span class="visibility vis-prot">#</span> calculateWanderForce() : <span class="type">Vector2D</span></div>
+        <div><span class="visibility vis-prot">#</span> applyKineticMovement(grid, f, dt)</div>
+      </div>
+    </div>
+
+    <div class="uml-class">
+      <div class="uml-header">
+        <div class="uml-stereotype">extends Animal</div>
+        <div class="uml-name">Herbivore / Carnivore / ApexPredator</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> update(grid, dt) <span class="type">[Polymorphic AI]</span></div>
+        <div><span class="visibility vis-pub">+</span> reproduce(grid) : <span class="type">Animal</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class generic">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;generic&raquo; &lt;T&gt;</div>
+        <div class="uml-name">Chromosome&lt;T&gt;</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> traitName : <span class="type">String</span></div>
+        <div><span class="visibility vis-priv">-</span> allele : <span class="type">T</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> mutateDouble(rng, rate, std, min, max)</div>
+      </div>
+    </div>
+
+    <div class="uml-class">
+      <div class="uml-header">
+        <div class="uml-stereotype">Encapsulation</div>
+        <div class="uml-name">Genome</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> speedGene : <span class="type">Chromosome&lt;Double&gt;</span></div>
+        <div><span class="visibility vis-priv">-</span> visionRadiusGene : <span class="type">Chromosome&lt;Double&gt;</span></div>
+        <div><span class="visibility vis-priv">-</span> sizeGene : <span class="type">Chromosome&lt;Double&gt;</span></div>
+        <div><span class="visibility vis-priv">-</span> mutationRateGene : <span class="type">Chromosome&lt;Double&gt;</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> validate() <span class="type">throws InvalidGenomeException</span></div>
+        <div><span class="visibility vis-pub">+</span> mutate() : <span class="type">Genome</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column 3: Grid & Generics & Exceptions -->
+  <div class="package-group">
+    <div class="package-title">📦 com.ecosystem.grid & exceptions</div>
+
+    <div class="uml-class generic">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;generic&raquo; &lt;T extends Entity&gt;</div>
+        <div class="uml-name">SpatialGrid&lt;T&gt;</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> cells : <span class="type">Cell[][]</span></div>
+        <div><span class="visibility vis-priv">-</span> allEntities : <span class="type">List&lt;T&gt;</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> addEntity(entity: T) <span class="type">throws BoundsEx</span></div>
+        <div><span class="visibility vis-pub">+</span> queryEntities&lt;E&gt;(cls: Class&lt;E&gt;) : <span class="type">List&lt;E&gt;</span></div>
+        <div><span class="visibility vis-pub">+</span> queryEntitiesNear&lt;E&gt;(pos, r, cls) : <span class="type">List&lt;E&gt;</span></div>
+        <div><span class="visibility vis-pub">+</span> findNearest&lt;E&gt;(pos, r, cls, pred) : <span class="type">Optional&lt;E&gt;</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class generic">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;generic&raquo; &lt;T extends Number&gt;</div>
+        <div class="uml-name">BoundedResource&lt;T&gt;</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> maxCapacity : <span class="type">double</span></div>
+        <div><span class="visibility vis-priv">-</span> currentAmount : <span class="type">double</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> replenish(amt: double) : <span class="type">void</span></div>
+        <div><span class="visibility vis-pub">+</span> consume(amt: double) <span class="type">throws ResourceDepletedEx</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class exception">
+      <div class="uml-header">
+        <div class="uml-stereotype">&laquo;checked exception&raquo;</div>
+        <div class="uml-name">EcosystemException</div>
+      </div>
+      <div class="uml-section">
+        <div style="font-size: 10px; color: #64748b;">▲ EntityOutOfBoundsException<br>▲ ResourceDepletedException<br>▲ InvalidGenomeException<br>▲ InvalidConfigurationException</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Column 4: Core Engine & UI -->
+  <div class="package-group">
+    <div class="package-title">📦 com.ecosystem.core & ui</div>
+
+    <div class="uml-class">
+      <div class="uml-header">
+        <div class="uml-stereotype">Simulation Coordinator</div>
+        <div class="uml-name">Engine</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> grid : <span class="type">SpatialGrid&lt;Entity&gt;</span></div>
+        <div><span class="visibility vis-priv">-</span> running : <span class="type">boolean</span></div>
+        <div><span class="visibility vis-priv">-</span> speedMultiplier : <span class="type">double</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> update(deltaSeconds: double) : <span class="type">void</span></div>
+        <div><span class="visibility vis-pub">+</span> populateWorld() : <span class="type">void</span></div>
+        <div><span class="visibility vis-pub">+</span> reset() : <span class="type">void</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class">
+      <div class="uml-header">
+        <div class="uml-stereotype">extends JFrame</div>
+        <div class="uml-name">SimulationFrame</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-priv">-</span> simulationPanel : <span class="type">SimulationPanel</span></div>
+        <div><span class="visibility vis-priv">-</span> statisticsHUD : <span class="type">StatisticsHUD</span></div>
+        <div><span class="visibility vis-priv">-</span> controlPanel : <span class="type">ControlPanel</span></div>
+        <div><span class="visibility vis-priv">-</span> animationTimer : <span class="type">javax.swing.Timer</span></div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> startSimulation() : <span class="type">void</span></div>
+      </div>
+    </div>
+
+    <div class="uml-class">
+      <div class="uml-header">
+        <div class="uml-stereotype">Config Parser</div>
+        <div class="uml-name">ConfigLoader</div>
+      </div>
+      <div class="uml-section">
+        <div><span class="visibility vis-pub">+</span> parseConfig(data: String) <span class="type">throws InvalidConfigEx</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Architecture & OO Design Summary -->
+<div class="relationships-box">
+  <div class="package-title" style="margin-bottom: 8px;">Key Object-Oriented Design Highlights for Marking Rubric</div>
+  <div class="rel-grid">
+    <div class="rel-card">
+      <h4>1. Inheritance & Polymorphism</h4>
+      <ul>
+        <li><strong>Hierarchy</strong>: <code>Entity</code> &rarr; <code>Organism</code> &rarr; <code>Animal</code> &rarr; <code>Herbivore</code>, <code>Carnivore</code>, <code>ApexPredator</code>.</li>
+        <li><strong>Polymorphic Dispatch</strong>: <code>Engine</code> updates and renders any <code>Entity</code> without type casting via <code>update(...)</code> and <code>render(...)</code>.</li>
+        <li><strong>Subclass Customization</strong>: Each consumer tier overrides sensing, threat assessment, food harvesting, and reproductive mutations.</li>
+      </ul>
+    </div>
+    <div class="rel-card">
+      <h4>2. Generics Usage</h4>
+      <ul>
+        <li><code>SpatialGrid&lt;T extends Entity&gt;</code>: Generic spatial bucket queries with bounded type parameter and generic methods <code>&lt;E extends T&gt; queryEntitiesNear(...)</code>.</li>
+        <li><code>Chromosome&lt;T&gt;</code>: Generic trait container encapsulating allele types and Gaussian mutation bounds.</li>
+        <li><code>BoundedResource&lt;T extends Number&gt;</code>: Type-safe upper/lower capacity bound tracker.</li>
+      </ul>
+    </div>
+    <div class="rel-card">
+      <h4>3. Robust Exception Handling</h4>
+      <ul>
+        <li>Domain exception hierarchy rooted at checked <code>EcosystemException</code>.</li>
+        <li><code>EntityOutOfBoundsException</code> prevents world corruptions; caught and recovered in <code>Engine</code> loop.</li>
+        <li><code>InvalidConfigurationException</code> and <code>InvalidGenomeException</code> ensure validated parameters before simulation bootstrap.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
