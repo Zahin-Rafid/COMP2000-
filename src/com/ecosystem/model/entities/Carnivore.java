@@ -12,7 +12,8 @@ import java.awt.Color;
 import java.util.Optional;
 
 /**
- * Secondary consumer (carnivore/predator) that hunts herbivores and avoids apex predators.
+ * Secondary consumer (carnivore/predator) that hunts herbivores and avoids apex
+ * predators.
  */
 public class Carnivore extends Animal {
     private static final Color CARNIVORE_COLOR = new Color(220, 50, 50);
@@ -24,11 +25,10 @@ public class Carnivore extends Animal {
                 CARNIVORE_COLOR,
                 initialEnergy,
                 150.0,
-                90.0,  // Max age
-                95.0,  // Reproduction threshold
+                90.0, // Max age
+                95.0, // Reproduction threshold
                 genome,
-                generation
-        );
+                generation);
     }
 
     public static Carnivore createDefault(Vector2D position) {
@@ -42,19 +42,21 @@ public class Carnivore extends Animal {
 
     @Override
     public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
 
         double vision = getGenome().getVisionRadius();
 
-        // 1. Check for Apex Predator threats
-        Optional<ApexPredator> threat = grid.findNearest(getPosition(), vision * 0.8, ApexPredator.class, Entity::isAlive);
+        // Check for Apex Predator threats
+        Optional<ApexPredator> threat = grid.findNearest(getPosition(), vision * 0.8, ApexPredator.class,
+                Entity::isAlive);
 
         Vector2D steeringForce;
         if (threat.isPresent()) {
             setSprinting(true);
             steeringForce = calculateFleeForce(threat.get().getPosition(), 1.4);
         } else {
-            // 2. Look for Herbivores to hunt
+            // Look for Herbivores to hunt
             Optional<Herbivore> prey = grid.findNearest(getPosition(), vision, Herbivore.class, Entity::isAlive);
 
             if (prey.isPresent()) {
@@ -68,15 +70,17 @@ public class Carnivore extends Animal {
                     // Spawn carcass remains
                     try {
                         grid.addEntity(new Carcass(target.getPosition(), 15.0));
-                    } catch (EntityOutOfBoundsException ignored) {}
+                    } catch (EntityOutOfBoundsException ignored) {
+                    }
                     steeringForce = calculateWanderForce();
                 } else {
                     steeringForce = calculateSteeringForce(target.getPosition(), 1.3);
                 }
             } else {
                 setSprinting(false);
-                // 3. Scavenge nearby Carcass if hungry
-                Optional<Carcass> carcass = grid.findNearest(getPosition(), vision * 0.7, Carcass.class, Entity::isAlive);
+                // Scavenge nearby Carcass if hungry
+                Optional<Carcass> carcass = grid.findNearest(getPosition(), vision * 0.7, Carcass.class,
+                        Entity::isAlive);
                 if (carcass.isPresent() && getEnergy() < getMaxEnergy() * 0.7) {
                     Carcass food = carcass.get();
                     double dist = getPosition().distanceTo(food.getPosition());

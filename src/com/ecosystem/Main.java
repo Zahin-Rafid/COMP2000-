@@ -8,23 +8,20 @@ import com.ecosystem.ui.SimulationFrame;
 
 import javax.swing.SwingUtilities;
 
-/**
- * Application entry point for the COMP2000 Multi-Tier Ecosystem Simulation.
- */
 public class Main {
     private static final String DEFAULT_CONFIG_DATA = """
             # World Geometry
             worldWidth=1000.0
             worldHeight=700.0
             cellSize=25.0
-            
+
             # Initial Population Distribution
             initialPlants=85
             initialHerbivores=35
             initialCarnivores=12
             initialApexPredators=4
             initialDecomposers=15
-            
+
             # Environment Parameters
             soilRegenRate=0.8
             """;

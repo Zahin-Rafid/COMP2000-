@@ -13,7 +13,8 @@ import java.awt.Graphics2D;
 import java.util.Random;
 
 /**
- * Abstract heterotrophic organism capable of autonomous spatial navigation, sensing, and hunting/foraging.
+ * Abstract heterotrophic organism capable of autonomous spatial navigation,
+ * sensing, and hunting/foraging.
  */
 public abstract class Animal extends Organism {
     protected static final Random RNG = new Random();
@@ -24,8 +25,8 @@ public abstract class Animal extends Organism {
     private boolean isSprinting;
 
     public Animal(Vector2D position, double radius, Color color, double initialEnergy,
-                  double maxEnergy, double maxAge, double reproductionThreshold,
-                  Genome genome, int generation) {
+            double maxEnergy, double maxAge, double reproductionThreshold,
+            Genome genome, int generation) {
         super(position, radius, color, initialEnergy, maxEnergy, maxAge, reproductionThreshold, genome, generation);
         this.velocity = new Vector2D(0, 0);
         this.headingAngle = RNG.nextDouble() * 2 * Math.PI;
@@ -54,7 +55,8 @@ public abstract class Animal extends Organism {
     }
 
     /**
-     * Steers the animal towards a target position with speed determined by its genome.
+     * Steers the animal towards a target position with speed determined by its
+     * genome.
      */
     protected Vector2D calculateSteeringForce(Vector2D targetPos, double speedMultiplier) {
         Vector2D desired = targetPos.subtract(getPosition());
@@ -82,7 +84,8 @@ public abstract class Animal extends Organism {
     }
 
     /**
-     * Generates a smooth organic wandering force when no immediate targets or threats exist.
+     * Generates a smooth organic wandering force when no immediate targets or
+     * threats exist.
      */
     protected Vector2D calculateWanderForce() {
         wanderAngle += (RNG.nextDouble() - 0.5) * 0.8;
@@ -113,7 +116,7 @@ public abstract class Animal extends Organism {
             this.headingAngle = Math.atan2(this.velocity.getY(), this.velocity.getX());
         }
 
-        // Check biome resistance (e.g. slow in water or desert)
+        // Check biome resistance
         Cell currentCell = grid.getCellAtWorldCoords(getPosition());
         double speedPenalty = 1.0;
         if (currentCell != null) {
@@ -150,7 +153,8 @@ public abstract class Animal extends Organism {
 
     @Override
     public void render(Graphics2D g) {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
         int r = (int) getRadius();
         int x = (int) (getPosition().getX() - r);
         int y = (int) (getPosition().getY() - r);

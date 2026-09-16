@@ -13,7 +13,8 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Main simulation coordinator driving time steps, entity updates, and ecosystem statistics.
+ * Main simulation coordinator driving time steps, entity updates, and ecosystem
+ * statistics.
  */
 public class Engine {
     private static final Random RNG = new Random();
@@ -56,7 +57,8 @@ public class Engine {
             if (pos != null) {
                 try {
                     grid.addEntity(Plant.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
             }
         }
 
@@ -66,7 +68,8 @@ public class Engine {
             if (pos != null) {
                 try {
                     grid.addEntity(Herbivore.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
             }
         }
 
@@ -76,7 +79,8 @@ public class Engine {
             if (pos != null) {
                 try {
                     grid.addEntity(Carnivore.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
             }
         }
 
@@ -86,7 +90,8 @@ public class Engine {
             if (pos != null) {
                 try {
                     grid.addEntity(ApexPredator.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
             }
         }
 
@@ -96,7 +101,8 @@ public class Engine {
             if (pos != null) {
                 try {
                     grid.addEntity(Decomposer.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
             }
         }
 
@@ -117,16 +123,17 @@ public class Engine {
     }
 
     public synchronized void update(double deltaSeconds) {
-        if (!running) return;
+        if (!running)
+            return;
 
         double effectiveDelta = deltaSeconds * speedMultiplier;
         totalSimulatedTime += effectiveDelta;
         totalTicks++;
 
-        // 1. Natural environmental regeneration
+        // Natural environmental regeneration
         grid.updateEnvironment(config.soilRegenRate() * effectiveDelta);
 
-        // 2. Entity life cycles & actions
+        // Entity life cycles & actions
         List<Entity> currentEntities = new ArrayList<>(grid.getAllEntities());
         for (Entity entity : currentEntities) {
             if (entity.isAlive()) {
@@ -135,7 +142,8 @@ public class Engine {
                 } catch (EntityOutOfBoundsException e) {
                     System.err.println("Handling entity bounds error: " + e.getMessage());
                     // Clamp position safely back into bounds
-                    Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10, config.worldHeight() - 10);
+                    Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10,
+                            config.worldHeight() - 10);
                     entity.setPosition(safePos);
                 }
 
@@ -147,10 +155,10 @@ public class Engine {
             }
         }
 
-        // 3. Synchronize births and deaths
+        // Synchronize births and deaths
         grid.synchronizeEntities();
 
-        // 4. Record statistics every 30 ticks
+        // Record statistics every 30 ticks
         if (totalTicks % 30 == 0) {
             recordStatistics();
         }

@@ -3,7 +3,7 @@ package com.ecosystem.core;
 import java.util.Objects;
 
 /**
- * Represents an immutable 2D vector for position, velocity, and force calculations.
+ * Fixed 2D vector for position, velocity, and force calculations.
  */
 public final class Vector2D {
     private final double x;
@@ -60,8 +60,10 @@ public final class Vector2D {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Vector2D vector2D = (Vector2D) o;
         return Double.compare(vector2D.x, x) == 0 && Double.compare(vector2D.y, y) == 0;
     }

@@ -10,7 +10,6 @@ import java.util.Map;
 
 /**
  * Validates and loads simulation parameters from configuration streams.
- * Demonstrates exception handling, custom exception throwing, and robust parameter parsing.
  */
 public class ConfigLoader {
 
@@ -32,8 +31,8 @@ public class ConfigLoader {
                 int eqIdx = line.indexOf('=');
                 if (eqIdx == -1) {
                     throw new InvalidConfigurationException(
-                            String.format("Malformed configuration syntax at line %d: '%s'. Expected key=value.", lineNumber, line)
-                    );
+                            String.format("Malformed configuration syntax at line %d: '%s'. Expected key=value.",
+                                    lineNumber, line));
                 }
                 String key = line.substring(0, eqIdx).trim();
                 String value = line.substring(eqIdx + 1).trim();
@@ -54,7 +53,8 @@ public class ConfigLoader {
             int decomposers = parseInt(properties, "initialDecomposers", 15, 0, 100);
             double regen = parseDouble(properties, "soilRegenRate", 0.8, 0.0, 10.0);
 
-            return new SimulationConfig(width, height, cellSize, plants, herbivores, carnivores, apex, decomposers, regen);
+            return new SimulationConfig(width, height, cellSize, plants, herbivores, carnivores, apex, decomposers,
+                    regen);
         } catch (NumberFormatException e) {
             throw new InvalidConfigurationException("Invalid numeric value in configuration parameter", e);
         }
@@ -62,20 +62,24 @@ public class ConfigLoader {
 
     private static double parseDouble(Map<String, String> map, String key, double defaultVal, double min, double max)
             throws InvalidConfigurationException {
-        if (!map.containsKey(key)) return defaultVal;
+        if (!map.containsKey(key))
+            return defaultVal;
         double val = Double.parseDouble(map.get(key));
         if (val < min || val > max) {
-            throw new InvalidConfigurationException(String.format("Parameter '%s' value %.1f is out of bounds [%.1f, %.1f]", key, val, min, max));
+            throw new InvalidConfigurationException(
+                    String.format("Parameter '%s' value %.1f is out of bounds [%.1f, %.1f]", key, val, min, max));
         }
         return val;
     }
 
     private static int parseInt(Map<String, String> map, String key, int defaultVal, int min, int max)
             throws InvalidConfigurationException {
-        if (!map.containsKey(key)) return defaultVal;
+        if (!map.containsKey(key))
+            return defaultVal;
         int val = Integer.parseInt(map.get(key));
         if (val < min || val > max) {
-            throw new InvalidConfigurationException(String.format("Parameter '%s' value %d is out of bounds [%d, %d]", key, val, min, max));
+            throw new InvalidConfigurationException(
+                    String.format("Parameter '%s' value %d is out of bounds [%d, %d]", key, val, min, max));
         }
         return val;
     }

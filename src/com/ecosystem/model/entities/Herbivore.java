@@ -24,11 +24,10 @@ public class Herbivore extends Animal {
                 HERBIVORE_COLOR,
                 initialEnergy,
                 120.0,
-                70.0,  // Max age
-                75.0,  // Reproduction threshold
+                70.0, // Max age
+                75.0, // Reproduction threshold
                 genome,
-                generation
-        );
+                generation);
     }
 
     public static Herbivore createDefault(Vector2D position) {
@@ -42,13 +41,16 @@ public class Herbivore extends Animal {
 
     @Override
     public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
 
         double vision = getGenome().getVisionRadius();
 
-        // 1. Check for immediate predator threats (Carnivore or ApexPredator)
-        Optional<Carnivore> threatCarnivore = grid.findNearest(getPosition(), vision * 0.9, Carnivore.class, Entity::isAlive);
-        Optional<ApexPredator> threatApex = grid.findNearest(getPosition(), vision * 1.1, ApexPredator.class, Entity::isAlive);
+        // Check for immediate predator threats
+        Optional<Carnivore> threatCarnivore = grid.findNearest(getPosition(), vision * 0.9, Carnivore.class,
+                Entity::isAlive);
+        Optional<ApexPredator> threatApex = grid.findNearest(getPosition(), vision * 1.1, ApexPredator.class,
+                Entity::isAlive);
 
         Vector2D steeringForce;
         if (threatApex.isPresent()) {
@@ -59,7 +61,7 @@ public class Herbivore extends Animal {
             steeringForce = calculateFleeForce(threatCarnivore.get().getPosition(), 1.3);
         } else {
             setSprinting(false);
-            // 2. Look for Food (Plant)
+            // Look for Food
             Optional<Plant> nearestPlant = grid.findNearest(getPosition(), vision, Plant.class, Entity::isAlive);
 
             if (nearestPlant.isPresent()) {
@@ -74,7 +76,7 @@ public class Herbivore extends Animal {
                     steeringForce = calculateSteeringForce(food.getPosition(), 1.0);
                 }
             } else {
-                // 3. Herd with nearby herbivores
+                // Herd with nearby herbivores
                 List<Herbivore> flock = grid.queryEntitiesNear(getPosition(), vision * 0.5, Herbivore.class);
                 if (flock.size() > 1) {
                     Vector2D flockCenter = new Vector2D(0, 0);

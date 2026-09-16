@@ -27,8 +27,7 @@ public class ApexPredator extends Animal {
                 110.0, // Max age
                 140.0, // Reproduction threshold
                 genome,
-                generation
-        );
+                generation);
     }
 
     public static ApexPredator createDefault(Vector2D position) {
@@ -42,11 +41,13 @@ public class ApexPredator extends Animal {
 
     @Override
     public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
 
         double vision = getGenome().getVisionRadius();
 
-        // 1. Apex predators prioritize carnivores for higher caloric return, then herbivores
+        // Apex predators prioritize carnivores for higher caloric return, then
+        // herbivores
         Optional<Carnivore> targetCarnivore = grid.findNearest(getPosition(), vision, Carnivore.class, Entity::isAlive);
         Optional<Herbivore> targetHerbivore = grid.findNearest(getPosition(), vision, Herbivore.class, Entity::isAlive);
 
@@ -60,7 +61,8 @@ public class ApexPredator extends Animal {
                 target.markDead();
                 try {
                     grid.addEntity(new Carcass(target.getPosition(), 25.0));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
                 steeringForce = calculateWanderForce();
             } else {
                 steeringForce = calculateSteeringForce(target.getPosition(), 1.2);
@@ -74,7 +76,8 @@ public class ApexPredator extends Animal {
                 target.markDead();
                 try {
                     grid.addEntity(new Carcass(target.getPosition(), 15.0));
-                } catch (EntityOutOfBoundsException ignored) {}
+                } catch (EntityOutOfBoundsException ignored) {
+                }
                 steeringForce = calculateWanderForce();
             } else {
                 steeringForce = calculateSteeringForce(target.getPosition(), 1.1);

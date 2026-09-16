@@ -1,7 +1,7 @@
 package com.ecosystem.config;
 
 /**
- * Immutable configuration parameters for the ecosystem simulation.
+ * Fixed configuration parameters for the ecosystem simulation.
  */
 public record SimulationConfig(
         double worldWidth,
@@ -12,8 +12,7 @@ public record SimulationConfig(
         int initialCarnivores,
         int initialApexPredators,
         int initialDecomposers,
-        double soilRegenRate
-) {
+        double soilRegenRate) {
     public static SimulationConfig createDefault() {
         return new SimulationConfig(
                 1000.0,
@@ -24,7 +23,6 @@ public record SimulationConfig(
                 12,
                 4,
                 15,
-                0.8
-        );
+                0.8);
     }
 }

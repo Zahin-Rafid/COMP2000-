@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.Random;
 
 /**
- * Detritivore/decomposer organism that consumes carcasses and fertilizes the soil.
+ * Decomposer organism that consumes carcasses and fertilizes the soil.
  */
 public class Decomposer extends Organism {
     private static final Random RNG = new Random();
@@ -32,8 +32,7 @@ public class Decomposer extends Organism {
                 100.0,
                 50.0,
                 genome,
-                generation
-        );
+                generation);
     }
 
     public static Decomposer createDefault(Vector2D position) {
@@ -47,7 +46,8 @@ public class Decomposer extends Organism {
 
     @Override
     public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
 
         burnBaseMetabolism(deltaSeconds * 0.15);
 
@@ -98,7 +98,8 @@ public class Decomposer extends Organism {
 
     @Override
     public void render(Graphics2D g) {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
         int r = (int) getRadius();
         int x = (int) (getPosition().getX() - r);
         int y = (int) (getPosition().getY() - r);

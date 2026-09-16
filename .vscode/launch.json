@@ -3,6 +3,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "com.ecosystem.Main",
+            "projectName": "COMP2000-_de16513f"
+        },
+        {
+            "type": "java",
             "name": "Launch Simulation (Main)",
             "request": "launch",
             "mainClass": "com.ecosystem.Main",
