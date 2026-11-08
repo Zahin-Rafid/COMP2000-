@@ -1,18 +1,21 @@
 package com.ecosystem.model.entities;
 
 import com.ecosystem.core.Vector2D;
-import com.ecosystem.exceptions.EntityOutOfBoundsException;
+import com.ecosystem.events.EcosystemEvent;
+import com.ecosystem.events.EcosystemEventBus;
+import com.ecosystem.events.EcosystemEventType;
 import com.ecosystem.exceptions.InvalidGenomeException;
 import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
 import com.ecosystem.model.genetics.Genome;
+import com.ecosystem.model.strategy.FlockingStrategy;
 
 import java.awt.Color;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Primary consumer (herbivore) that grazes on plants and evades predators.
+ * Primary consumer (herbivore) that grazes on autotrophic plants, herds with conspecifics,
+ * and flees from secondary/tertiary predators using the State and Strategy patterns.
  */
 public class Herbivore extends Animal {
     private static final Color HERBIVORE_COLOR = new Color(50, 150, 250);
@@ -27,7 +30,10 @@ public class Herbivore extends Animal {
                 70.0, // Max age
                 75.0, // Reproduction threshold
                 genome,
-                generation);
+                generation
+        );
+        // Default wandering movement strategy utilizes Flocking behavior
+        setMovementStrategy(new FlockingStrategy(genome.getVisionRadius() * 0.6));
     }
 
     public static Herbivore createDefault(Vector2D position) {
@@ -40,90 +46,75 @@ public class Herbivore extends Animal {
     }
 
     @Override
-    public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
-        if (!isAlive())
-            return;
-
+    public Optional<? extends Entity> findThreat(SpatialGrid<Entity> grid) {
         double vision = getGenome().getVisionRadius();
+        Optional<ApexPredator> apex = grid.findNearest(getPosition(), vision * 1.1, ApexPredator.class, Entity::isAlive);
+        if (apex.isPresent()) return apex;
+        return grid.findNearest(getPosition(), vision * 0.9, Carnivore.class, Entity::isAlive);
+    }
 
-        // Check for immediate predator threats
-        Optional<Carnivore> threatCarnivore = grid.findNearest(getPosition(), vision * 0.9, Carnivore.class,
-                Entity::isAlive);
-        Optional<ApexPredator> threatApex = grid.findNearest(getPosition(), vision * 1.1, ApexPredator.class,
-                Entity::isAlive);
+    @Override
+    public Optional<? extends Entity> findFood(SpatialGrid<Entity> grid) {
+        double vision = getGenome().getVisionRadius();
+        return grid.findNearest(getPosition(), vision, Plant.class, Entity::isAlive);
+    }
 
-        Vector2D steeringForce;
-        if (threatApex.isPresent()) {
-            setSprinting(true);
-            steeringForce = calculateFleeForce(threatApex.get().getPosition(), 1.4);
-        } else if (threatCarnivore.isPresent()) {
-            setSprinting(true);
-            steeringForce = calculateFleeForce(threatCarnivore.get().getPosition(), 1.3);
-        } else {
-            setSprinting(false);
-            // Look for Food
-            Optional<Plant> nearestPlant = grid.findNearest(getPosition(), vision, Plant.class, Entity::isAlive);
+    @Override
+    public Optional<? extends Animal> findMate(SpatialGrid<Entity> grid) {
+        double vision = getGenome().getVisionRadius();
+        return grid.findNearest(getPosition(), vision, Herbivore.class,
+                mate -> mate != this && mate.isAlive() && mate.canReproduce());
+    }
 
-            if (nearestPlant.isPresent()) {
-                Plant food = nearestPlant.get();
-                double dist = getPosition().distanceTo(food.getPosition());
-                if (dist <= getRadius() + food.getRadius() + 2.0) {
-                    // Consume plant
-                    addEnergy(food.getEnergy() * 0.8);
-                    food.markDead();
-                    steeringForce = calculateWanderForce();
-                } else {
-                    steeringForce = calculateSteeringForce(food.getPosition(), 1.0);
-                }
-            } else {
-                // Herd with nearby herbivores
-                List<Herbivore> flock = grid.queryEntitiesNear(getPosition(), vision * 0.5, Herbivore.class);
-                if (flock.size() > 1) {
-                    Vector2D flockCenter = new Vector2D(0, 0);
-                    int count = 0;
-                    for (Herbivore mate : flock) {
-                        if (mate != this) {
-                            flockCenter = flockCenter.add(mate.getPosition());
-                            count++;
-                        }
-                    }
-                    flockCenter = flockCenter.multiply(1.0 / count);
-                    steeringForce = calculateSteeringForce(flockCenter, 0.6).add(calculateWanderForce().multiply(0.4));
-                } else {
-                    steeringForce = calculateWanderForce();
-                }
-            }
-        }
-
-        applyKineticMovement(grid, steeringForce, deltaSeconds);
-
-        // Check reproduction
-        if (canReproduce()) {
-            Herbivore baby = reproduce(grid);
-            if (baby != null) {
-                grid.addEntity(baby);
-                consumeEnergy(getReproductionThreshold() * 0.45);
-            }
+    @Override
+    public void consumeTarget(Entity food, SpatialGrid<Entity> grid) {
+        if (food instanceof Plant plant && plant.isAlive()) {
+            addEnergy(plant.getEnergy() * 0.85);
+            plant.markDead();
+            EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                    EcosystemEventType.PREDATION_OCCURRED,
+                    "Herbivore grazed on Plant",
+                    getPosition(),
+                    0,
+                    this
+            ));
         }
     }
 
     @Override
-    protected void onDeath() {
-        // Drop small carcass
+    public Animal breed(Animal mate) {
+        if (!(mate instanceof Herbivore herbMate)) return null;
+        try {
+            Genome childGenome = getGenome().crossover(herbMate.getGenome()).mutate();
+            double offsetAngle = RNG.nextDouble() * 2 * Math.PI;
+            Vector2D babyPos = getPosition().add(new Vector2D(Math.cos(offsetAngle) * 8, Math.sin(offsetAngle) * 8));
+            int childGen = Math.max(getGeneration(), herbMate.getGeneration()) + 1;
+            Herbivore baby = new Herbivore(babyPos, 40.0, childGenome, childGen);
+            EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                    EcosystemEventType.ORGANISM_BORN,
+                    "New Herbivore born (Gen " + childGen + ")",
+                    babyPos,
+                    0,
+                    baby
+            ));
+            return baby;
+        } catch (InvalidGenomeException e) {
+            return null;
+        }
     }
 
     @Override
     public Herbivore reproduce(SpatialGrid<Entity> grid) {
-        try {
-            double offsetAngle = RNG.nextDouble() * 2 * Math.PI;
-            Vector2D babyPos = getPosition().add(new Vector2D(Math.cos(offsetAngle) * 10, Math.sin(offsetAngle) * 10));
-            if (!grid.isWithinBounds(babyPos)) {
-                babyPos = getPosition();
-            }
-            Genome childGenome = getGenome().mutate();
-            return new Herbivore(babyPos, 35.0, childGenome, getGeneration() + 1);
-        } catch (InvalidGenomeException e) {
-            return null;
-        }
+        return (Herbivore) breed(this);
+    }
+
+    @Override
+    public String getSpeciesName() {
+        return "Herbivore";
+    }
+
+    @Override
+    protected void onDeath() {
+        // Carcass drop managed upon predation or starvation in engine
     }
 }

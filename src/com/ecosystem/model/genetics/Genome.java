@@ -67,6 +67,20 @@ public class Genome {
     }
 
     /**
+     * Performs genetic crossover combining traits from this genome and a mate genome.
+     */
+    public Genome crossover(Genome other) throws InvalidGenomeException {
+        if (other == null) return mutate();
+        return new Genome(
+                RNG.nextBoolean() ? this.getSpeed() : other.getSpeed(),
+                RNG.nextBoolean() ? this.getVisionRadius() : other.getVisionRadius(),
+                RNG.nextBoolean() ? this.getSize() : other.getSize(),
+                RNG.nextBoolean() ? this.getMetabolismEfficiency() : other.getMetabolismEfficiency(),
+                RNG.nextBoolean() ? this.getMutationRate() : other.getMutationRate()
+        );
+    }
+
+    /**
      * Creates an offspring genome with mutations applied according to the parent mutation rate.
      */
     public Genome mutate() throws InvalidGenomeException {

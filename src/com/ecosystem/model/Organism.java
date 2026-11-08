@@ -83,7 +83,7 @@ public abstract class Organism extends Entity {
     /**
      * Metabolic burn based on organism size, speed, and genome efficiency.
      */
-    protected void burnBaseMetabolism(double deltaSeconds) {
+    public void burnBaseMetabolism(double deltaSeconds) {
         double cost = (genome.getSize() * 0.5 + 0.2) * genome.getMetabolismEfficiency() * deltaSeconds;
         consumeEnergy(cost);
         this.age += deltaSeconds;
