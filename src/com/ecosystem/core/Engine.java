@@ -1,20 +1,25 @@
 package com.ecosystem.core;
 
 import com.ecosystem.config.SimulationConfig;
+import com.ecosystem.events.EcosystemEvent;
+import com.ecosystem.events.EcosystemEventBus;
+import com.ecosystem.events.EcosystemEventType;
 import com.ecosystem.exceptions.EntityOutOfBoundsException;
 import com.ecosystem.grid.Cell;
 import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
 import com.ecosystem.model.Organism;
 import com.ecosystem.model.entities.*;
+import com.ecosystem.util.EcosystemCollectors;
+import com.ecosystem.util.EcosystemSummary;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
 /**
- * Main simulation coordinator driving time steps, entity updates, and ecosystem
- * statistics.
+ * Main simulation coordinator driving time steps, entity updates, parallel metrics computation,
+ * and environmental disaster events.
  */
 public class Engine {
     private static final Random RNG = new Random();
@@ -31,7 +36,9 @@ public class Engine {
     private final List<Integer> herbivoreHistory;
     private final List<Integer> carnivoreHistory;
     private final List<Integer> apexHistory;
+    private final List<Double> diversityHistory;
     private int highestGeneration;
+    private EcosystemSummary latestSummary;
 
     public Engine(SimulationConfig config) {
         this.config = config;
@@ -45,64 +52,55 @@ public class Engine {
         this.herbivoreHistory = new ArrayList<>();
         this.carnivoreHistory = new ArrayList<>();
         this.apexHistory = new ArrayList<>();
+        this.diversityHistory = new ArrayList<>();
         this.highestGeneration = 1;
 
         populateWorld();
     }
 
     public void populateWorld() {
-        // Spawn plants
         for (int i = 0; i < config.initialPlants(); i++) {
             Vector2D pos = findRandomValidPosition();
             if (pos != null) {
                 try {
                     grid.addEntity(Plant.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {
-                }
+                } catch (EntityOutOfBoundsException ignored) {}
             }
         }
 
-        // Spawn herbivores
         for (int i = 0; i < config.initialHerbivores(); i++) {
             Vector2D pos = findRandomValidPosition();
             if (pos != null) {
                 try {
                     grid.addEntity(Herbivore.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {
-                }
+                } catch (EntityOutOfBoundsException ignored) {}
             }
         }
 
-        // Spawn carnivores
         for (int i = 0; i < config.initialCarnivores(); i++) {
             Vector2D pos = findRandomValidPosition();
             if (pos != null) {
                 try {
                     grid.addEntity(Carnivore.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {
-                }
+                } catch (EntityOutOfBoundsException ignored) {}
             }
         }
 
-        // Spawn apex predators
         for (int i = 0; i < config.initialApexPredators(); i++) {
             Vector2D pos = findRandomValidPosition();
             if (pos != null) {
                 try {
                     grid.addEntity(ApexPredator.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {
-                }
+                } catch (EntityOutOfBoundsException ignored) {}
             }
         }
 
-        // Spawn decomposers
         for (int i = 0; i < config.initialDecomposers(); i++) {
             Vector2D pos = findRandomValidPosition();
             if (pos != null) {
                 try {
                     grid.addEntity(Decomposer.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {
-                }
+                } catch (EntityOutOfBoundsException ignored) {}
             }
         }
 
@@ -122,9 +120,11 @@ public class Engine {
         return new Vector2D(config.worldWidth() / 2.0, config.worldHeight() / 2.0);
     }
 
+    /**
+     * Advances simulation by deltaSeconds.
+     */
     public synchronized void update(double deltaSeconds) {
-        if (!running)
-            return;
+        if (!running) return;
 
         double effectiveDelta = deltaSeconds * speedMultiplier;
         totalSimulatedTime += effectiveDelta;
@@ -133,17 +133,14 @@ public class Engine {
         // Natural environmental regeneration
         grid.updateEnvironment(config.soilRegenRate() * effectiveDelta);
 
-        // Entity life cycles & actions
-        List<Entity> currentEntities = new ArrayList<>(grid.getAllEntities());
+        // Snapshot of current entities prevents ConcurrentModificationException
+        List<Entity> currentEntities = grid.getAllEntitiesSnapshot();
         for (Entity entity : currentEntities) {
             if (entity.isAlive()) {
                 try {
                     entity.update(grid, effectiveDelta);
                 } catch (EntityOutOfBoundsException e) {
-                    System.err.println("Handling entity bounds error: " + e.getMessage());
-                    // Clamp position safely back into bounds
-                    Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10,
-                            config.worldHeight() - 10);
+                    Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10, config.worldHeight() - 10);
                     entity.setPosition(safePos);
                 }
 
@@ -158,13 +155,27 @@ public class Engine {
         // Synchronize births and deaths
         grid.synchronizeEntities();
 
-        // Record statistics every 30 ticks
+        // Record statistics and compute parallel metrics every 30 ticks
         if (totalTicks % 30 == 0) {
             recordStatistics();
+            checkEmergentDisasters();
         }
     }
 
+    /**
+     * Sophisticated Parallel Stream calculation utilizing custom Collector.
+     * Guaranteed thread-safe by operating on an isolated snapshot with pure associative combiner.
+     */
+    public EcosystemSummary computeParallelEcosystemMetrics() {
+        List<Entity> snapshot = grid.getAllEntitiesSnapshot();
+        return snapshot.parallelStream()
+                .filter(Entity::isAlive)
+                .collect(EcosystemCollectors.toEcosystemSummary());
+    }
+
     private void recordStatistics() {
+        this.latestSummary = computeParallelEcosystemMetrics();
+
         int plants = grid.queryEntities(Plant.class).size();
         int herbivores = grid.queryEntities(Herbivore.class).size();
         int carnivores = grid.queryEntities(Carnivore.class).size();
@@ -174,14 +185,99 @@ public class Engine {
         herbivoreHistory.add(herbivores);
         carnivoreHistory.add(carnivores);
         apexHistory.add(apex);
+        diversityHistory.add(latestSummary.shannonDiversityIndex());
 
-        // Limit graph history size to last 200 points
         if (plantHistory.size() > 200) {
             plantHistory.remove(0);
             herbivoreHistory.remove(0);
             carnivoreHistory.remove(0);
             apexHistory.remove(0);
+            diversityHistory.remove(0);
         }
+    }
+
+    /**
+     * Emergent environmental disaster triggers based on population thresholds.
+     */
+    private void checkEmergentDisasters() {
+        int plants = grid.queryEntities(Plant.class).size();
+        int herbivores = grid.queryEntities(Herbivore.class).size();
+
+        // Overcrowded plants can ignite a Wildfire
+        if (plants > 180 && RNG.nextDouble() < 0.15) {
+            triggerWildfire(findRandomValidPosition(), 120.0);
+        }
+
+        // Severe herbivore overgrazing triggers Drought
+        if (herbivores > 100 && RNG.nextDouble() < 0.10) {
+            triggerDrought(0.5);
+        }
+    }
+
+    public void triggerWildfire(Vector2D origin, double radius) {
+        List<Plant> caughtInFire = grid.queryEntitiesNear(origin, radius, Plant.class);
+        for (Plant plant : caughtInFire) {
+            plant.markDead();
+            // Drop nutrient ash into soil
+            Cell cell = grid.getCellAtWorldCoords(plant.getPosition());
+            if (cell != null) {
+                cell.getSoilNutrients().replenish(25.0);
+            }
+        }
+        EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                EcosystemEventType.ENVIRONMENTAL_DISASTER,
+                "Wildfire burned " + caughtInFire.size() + " plants across sector",
+                origin,
+                totalTicks,
+                null
+        ));
+    }
+
+    public void triggerDrought(double severity) {
+        for (int x = 0; x < grid.getCols(); x++) {
+            for (int y = 0; y < grid.getRows(); y++) {
+                Cell cell = grid.getCellAtGridCoords(x, y);
+                if (cell != null) {
+                    try {
+                        cell.getSoilNutrients().consume(cell.getSoilNutrients().getCurrentAmount() * severity);
+                    } catch (Exception ignored) {}
+                }
+            }
+        }
+        EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                EcosystemEventType.ENVIRONMENTAL_DISASTER,
+                "Severe Drought depleted soil nutrients across all biomes",
+                new Vector2D(config.worldWidth() / 2, config.worldHeight() / 2),
+                totalTicks,
+                null
+        ));
+    }
+
+    public void triggerFertileBloom() {
+        for (int x = 0; x < grid.getCols(); x++) {
+            for (int y = 0; y < grid.getRows(); y++) {
+                Cell cell = grid.getCellAtGridCoords(x, y);
+                if (cell != null && cell.getBiome().isTraversableByLand()) {
+                    cell.getSoilNutrients().replenish(40.0);
+                }
+            }
+        }
+        for (int i = 0; i < 25; i++) {
+            Vector2D pos = findRandomValidPosition();
+            if (pos != null) {
+                try {
+                    grid.addEntity(Plant.createDefault(pos));
+                } catch (EntityOutOfBoundsException ignored) {}
+            }
+        }
+        grid.synchronizeEntities();
+        EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                EcosystemEventType.FERTILE_BLOOM,
+                "Fertile Monsoon Bloom triggered rapid autotrophic proliferation",
+                new Vector2D(config.worldWidth() / 2, config.worldHeight() / 2),
+                totalTicks,
+                null
+        ));
     }
 
     public SpatialGrid<Entity> getGrid() {
@@ -240,9 +336,17 @@ public class Engine {
         return apexHistory;
     }
 
+    public List<Double> getDiversityHistory() {
+        return diversityHistory;
+    }
+
+    public EcosystemSummary getLatestSummary() {
+        return latestSummary;
+    }
+
     public void reset() {
         this.running = false;
-        List<Entity> all = new ArrayList<>(grid.getAllEntities());
+        List<Entity> all = grid.getAllEntitiesSnapshot();
         for (Entity e : all) {
             e.markDead();
         }
@@ -251,6 +355,7 @@ public class Engine {
         herbivoreHistory.clear();
         carnivoreHistory.clear();
         apexHistory.clear();
+        diversityHistory.clear();
         highestGeneration = 1;
         totalTicks = 0;
         totalSimulatedTime = 0.0;

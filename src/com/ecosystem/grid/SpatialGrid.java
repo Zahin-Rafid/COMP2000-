@@ -4,15 +4,14 @@ import com.ecosystem.core.Vector2D;
 import com.ecosystem.exceptions.EntityOutOfBoundsException;
 import com.ecosystem.model.Entity;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Predicate;
 
 /**
  * Generic spatial data structure partitioning entities into spatial buckets for high-performance
- * collision and sensory queries. Demonstrates generic type bounds <T extends Entity>.
+ * collision and sensory queries. Demonstrates generic type bounds {@code <T extends Entity>}
+ * and thread-safe concurrent collection buffering for parallel stream execution.
  *
  * @param <T> The entity type contained within the grid.
  */
@@ -25,8 +24,8 @@ public class SpatialGrid<T extends Entity> {
 
     private final Cell[][] cells;
     private final List<T> allEntities;
-    private final List<T> pendingAdditions;
-    private final List<T> pendingRemovals;
+    private final Queue<T> pendingAdditions;
+    private final Queue<T> pendingRemovals;
 
     public SpatialGrid(double worldWidth, double worldHeight, double cellSize) {
         if (worldWidth <= 0 || worldHeight <= 0 || cellSize <= 0) {
@@ -40,8 +39,9 @@ public class SpatialGrid<T extends Entity> {
 
         this.cells = new Cell[cols][rows];
         this.allEntities = new ArrayList<>();
-        this.pendingAdditions = new ArrayList<>();
-        this.pendingRemovals = new ArrayList<>();
+        // Concurrent queues prevent race conditions when multiple threads queue entities
+        this.pendingAdditions = new ConcurrentLinkedQueue<>();
+        this.pendingRemovals = new ConcurrentLinkedQueue<>();
 
         initializeCells();
     }
@@ -56,23 +56,18 @@ public class SpatialGrid<T extends Entity> {
     }
 
     private BiomeType determineBiome(int x, int y) {
-        // Procedural biome layout: central fertile plains, corner water bodies, north forest, south desert
         double nx = (double) x / cols;
         double ny = (double) y / rows;
 
-        // Lake in top-right
         if (nx > 0.75 && ny < 0.3) {
             return BiomeType.WATER;
         }
-        // Lake in bottom-left
         if (nx < 0.25 && ny > 0.75) {
             return BiomeType.WATER;
         }
-        // Forest along the top
         if (ny < 0.35) {
             return BiomeType.FOREST;
         }
-        // Arid desert along the bottom
         if (ny > 0.75) {
             return BiomeType.DESERT;
         }
@@ -117,96 +112,82 @@ public class SpatialGrid<T extends Entity> {
                position.getY() >= 0 && position.getY() <= worldHeight;
     }
 
-    public synchronized void addEntity(T entity) throws EntityOutOfBoundsException {
+    public void addEntity(T entity) throws EntityOutOfBoundsException {
         if (!isWithinBounds(entity.getPosition())) {
             throw new EntityOutOfBoundsException(entity.getPosition(), worldWidth, worldHeight);
         }
         pendingAdditions.add(entity);
     }
 
-    public synchronized void removeEntity(T entity) {
+    public void removeEntity(T entity) {
         pendingRemovals.add(entity);
     }
 
     public synchronized void synchronizeEntities() {
-        if (!pendingAdditions.isEmpty()) {
-            allEntities.addAll(pendingAdditions);
-            pendingAdditions.clear();
+        T addition;
+        while ((addition = pendingAdditions.poll()) != null) {
+            allEntities.add(addition);
         }
-        if (!pendingRemovals.isEmpty()) {
-            allEntities.removeAll(pendingRemovals);
-            pendingRemovals.clear();
+        T removal;
+        while ((removal = pendingRemovals.poll()) != null) {
+            allEntities.remove(removal);
         }
-        // Purge dead entities
+        // Purge dead entities via functional predicate
         allEntities.removeIf(e -> !e.isAlive());
     }
 
-    public List<T> getAllEntities() {
-        return Collections.unmodifiableList(allEntities);
+    public synchronized List<T> getAllEntities() {
+        return Collections.unmodifiableList(new ArrayList<>(allEntities));
+    }
+
+    public synchronized List<T> getAllEntitiesSnapshot() {
+        return new ArrayList<>(allEntities);
     }
 
     /**
      * Generic query method returning all entities matching a specific class or subclass.
-     *
-     * @param typeClass The target class to filter by.
-     * @param <E> The specific subtype of T requested.
-     * @return Filtered list of entities of type E.
+     * Expressed via declarative Streams API.
      */
     @SuppressWarnings("unchecked")
     public <E extends T> List<E> queryEntities(Class<E> typeClass) {
-        List<E> result = new ArrayList<>();
-        for (T entity : allEntities) {
-            if (entity.isAlive() && typeClass.isInstance(entity)) {
-                result.add((E) entity);
-            }
+        synchronized (this) {
+            return allEntities.stream()
+                    .filter(Entity::isAlive)
+                    .filter(typeClass::isInstance)
+                    .map(e -> (E) e)
+                    .toList();
         }
-        return result;
     }
 
     /**
      * Generic spatial query method returning all entities within a circular radius matching a type.
-     *
-     * @param center Query origin.
-     * @param radius Maximum search distance.
-     * @param typeClass Target entity class.
-     * @param <E> Subtype of T.
-     * @return Entities within distance matching type E.
+     * Uses Streams API with distance squared filtering to avoid expensive square-root calls.
      */
     @SuppressWarnings("unchecked")
     public <E extends T> List<E> queryEntitiesNear(Vector2D center, double radius, Class<E> typeClass) {
-        List<E> result = new ArrayList<>();
         double radiusSq = radius * radius;
-
-        for (T entity : allEntities) {
-            if (entity.isAlive() && typeClass.isInstance(entity)) {
-                double distSq = Math.pow(entity.getPosition().getX() - center.getX(), 2) +
-                                Math.pow(entity.getPosition().getY() - center.getY(), 2);
-                if (distSq <= radiusSq) {
-                    result.add((E) entity);
-                }
-            }
+        synchronized (this) {
+            return allEntities.stream()
+                    .filter(Entity::isAlive)
+                    .filter(typeClass::isInstance)
+                    .filter(e -> {
+                        double dx = e.getPosition().getX() - center.getX();
+                        double dy = e.getPosition().getY() - center.getY();
+                        return (dx * dx + dy * dy) <= radiusSq;
+                    })
+                    .map(e -> (E) e)
+                    .toList();
         }
-        return result;
     }
 
     /**
      * Finds the closest entity matching the specified type and predicate condition.
+     * Implemented using a concise, declarative stream pipeline with Comparator.comparingDouble.
      */
     public <E extends T> Optional<E> findNearest(Vector2D center, double maxRadius, Class<E> typeClass, Predicate<E> filter) {
-        List<E> candidates = queryEntitiesNear(center, maxRadius, typeClass);
-        E bestMatch = null;
-        double minDistance = Double.MAX_VALUE;
-
-        for (E candidate : candidates) {
-            if (filter == null || filter.test(candidate)) {
-                double dist = center.distanceTo(candidate.getPosition());
-                if (dist < minDistance) {
-                    minDistance = dist;
-                    bestMatch = candidate;
-                }
-            }
-        }
-        return Optional.ofNullable(bestMatch);
+        return queryEntitiesNear(center, maxRadius, typeClass).stream()
+                .filter(candidate -> filter == null || filter.test(candidate))
+                .min(Comparator.comparingDouble(candidate -> center.distanceTo(candidate.getPosition())));
     }
 
     public void updateEnvironment(double regenRate) {

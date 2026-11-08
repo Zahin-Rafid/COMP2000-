@@ -7,14 +7,20 @@ import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
 import com.ecosystem.model.Organism;
 import com.ecosystem.model.genetics.Genome;
+import com.ecosystem.model.state.AnimalState;
+import com.ecosystem.model.state.WanderingState;
+import com.ecosystem.model.strategy.MovementStrategy;
+import com.ecosystem.model.strategy.WanderStrategy;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.util.Optional;
 import java.util.Random;
 
 /**
  * Abstract heterotrophic organism capable of autonomous spatial navigation,
- * sensing, and hunting/foraging.
+ * sensing, hunting/foraging, and dynamic state-driven behavior.
+ * Participates as Context in both the State Pattern and Strategy Pattern.
  */
 public abstract class Animal extends Organism {
     protected static final Random RNG = new Random();
@@ -24,6 +30,12 @@ public abstract class Animal extends Organism {
     private double wanderAngle;
     private boolean isSprinting;
 
+    // Design Pattern: State Pattern (Behavioural)
+    private AnimalState currentState;
+
+    // Design Pattern: Strategy Pattern (Behavioural)
+    private MovementStrategy movementStrategy;
+
     public Animal(Vector2D position, double radius, Color color, double initialEnergy,
             double maxEnergy, double maxAge, double reproductionThreshold,
             Genome genome, int generation) {
@@ -32,6 +44,30 @@ public abstract class Animal extends Organism {
         this.headingAngle = RNG.nextDouble() * 2 * Math.PI;
         this.wanderAngle = this.headingAngle;
         this.isSprinting = false;
+
+        // Default state & movement strategy
+        this.currentState = new WanderingState();
+        this.movementStrategy = new WanderStrategy();
+    }
+
+    public AnimalState getCurrentState() {
+        return currentState;
+    }
+
+    public void changeState(AnimalState newState) {
+        if (newState != null) {
+            this.currentState = newState;
+        }
+    }
+
+    public MovementStrategy getMovementStrategy() {
+        return movementStrategy;
+    }
+
+    public void setMovementStrategy(MovementStrategy movementStrategy) {
+        if (movementStrategy != null) {
+            this.movementStrategy = movementStrategy;
+        }
     }
 
     public Vector2D getVelocity() {
@@ -55,10 +91,9 @@ public abstract class Animal extends Organism {
     }
 
     /**
-     * Steers the animal towards a target position with speed determined by its
-     * genome.
+     * Steers the animal towards a target position with speed determined by its genome.
      */
-    protected Vector2D calculateSteeringForce(Vector2D targetPos, double speedMultiplier) {
+    public Vector2D calculateSteeringForce(Vector2D targetPos, double speedMultiplier) {
         Vector2D desired = targetPos.subtract(getPosition());
         double dist = desired.magnitude();
         if (dist < 0.001) {
@@ -72,7 +107,7 @@ public abstract class Animal extends Organism {
     /**
      * Steers the animal directly away from a threat coordinate.
      */
-    protected Vector2D calculateFleeForce(Vector2D threatPos, double speedMultiplier) {
+    public Vector2D calculateFleeForce(Vector2D threatPos, double speedMultiplier) {
         Vector2D desired = getPosition().subtract(threatPos);
         double dist = desired.magnitude();
         if (dist < 0.001) {
@@ -84,10 +119,9 @@ public abstract class Animal extends Organism {
     }
 
     /**
-     * Generates a smooth organic wandering force when no immediate targets or
-     * threats exist.
+     * Generates a smooth organic wandering force when no immediate targets or threats exist.
      */
-    protected Vector2D calculateWanderForce() {
+    public Vector2D calculateWanderForce() {
         wanderAngle += (RNG.nextDouble() - 0.5) * 0.8;
         double wanderRadius = 15.0;
         double circleDist = 25.0;
@@ -100,7 +134,7 @@ public abstract class Animal extends Organism {
     /**
      * Advances the animal's position, checks boundaries, and drains kinetic energy.
      */
-    protected void applyKineticMovement(SpatialGrid<Entity> grid, Vector2D force, double deltaSeconds)
+    public void applyKineticMovement(SpatialGrid<Entity> grid, Vector2D force, double deltaSeconds)
             throws EntityOutOfBoundsException {
         // Accelerate
         this.velocity = this.velocity.add(force.multiply(deltaSeconds * 4.0));
@@ -152,9 +186,15 @@ public abstract class Animal extends Organism {
     }
 
     @Override
+    public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
+        if (!isAlive()) return;
+        // Delegate state-dependent behavioral logic to the active State object
+        currentState.update(this, grid, deltaSeconds);
+    }
+
+    @Override
     public void render(Graphics2D g) {
-        if (!isAlive())
-            return;
+        if (!isAlive()) return;
         int r = (int) getRadius();
         int x = (int) (getPosition().getX() - r);
         int y = (int) (getPosition().getY() - r);
@@ -164,6 +204,10 @@ public abstract class Animal extends Organism {
         g.fillOval(x, y, r * 2, r * 2);
         g.setColor(Color.BLACK);
         g.drawOval(x, y, r * 2, r * 2);
+
+        // State indicator dot in center
+        g.setColor(currentState.getStatusColor());
+        g.fillOval((int) getPosition().getX() - 2, (int) getPosition().getY() - 2, 4, 4);
 
         // Directional nose / pointer
         int noseX = (int) (getPosition().getX() + Math.cos(headingAngle) * (r + 3));
@@ -183,4 +227,12 @@ public abstract class Animal extends Organism {
         g.setColor(energyRatio > 0.5 ? Color.GREEN : (energyRatio > 0.25 ? Color.YELLOW : Color.RED));
         g.fillRect(barX, barY, (int) (barW * energyRatio), barH);
     }
+
+    // Polymorphic hooks for state pattern sensing and actions
+    public abstract Optional<? extends Entity> findThreat(SpatialGrid<Entity> grid);
+    public abstract Optional<? extends Entity> findFood(SpatialGrid<Entity> grid);
+    public abstract Optional<? extends Animal> findMate(SpatialGrid<Entity> grid);
+    public abstract void consumeTarget(Entity food, SpatialGrid<Entity> grid);
+    public abstract Animal breed(Animal mate);
+    public abstract String getSpeciesName();
 }

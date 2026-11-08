@@ -1,24 +1,41 @@
 package com.ecosystem.ui;
 
 import com.ecosystem.core.Engine;
+import com.ecosystem.events.EcosystemEvent;
+import com.ecosystem.events.EcosystemEventBus;
 import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
 import com.ecosystem.model.entities.*;
+import com.ecosystem.util.EcosystemSummary;
 
 import javax.swing.JPanel;
 import java.awt.*;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * HUD panel displaying live ecological metrics, trophic counts, and a real-time line graph.
+ * HUD panel displaying live ecological metrics, trophic counts, Shannon Diversity Index,
+ * and a real-time event ticker subscribed to the Observer event bus.
  */
 public class StatisticsHUD extends JPanel {
     private final Engine engine;
+    private final List<String> recentEventLogs = new ArrayList<>();
 
     public StatisticsHUD(Engine engine) {
         this.engine = engine;
-        setPreferredSize(new Dimension(320, (int) engine.getConfig().worldHeight()));
+        setPreferredSize(new Dimension(340, (int) engine.getConfig().worldHeight()));
         setBackground(new Color(20, 24, 28));
+
+        // Register as Observer to receive real-time decoupled simulation events
+        EcosystemEventBus.getInstance().subscribe(this::handleEcosystemEvent);
+    }
+
+    private synchronized void handleEcosystemEvent(EcosystemEvent event) {
+        String logEntry = String.format("[T+%03ds] %s", event.tick() / 60, event.message());
+        recentEventLogs.add(0, logEntry);
+        if (recentEventLogs.size() > 8) {
+            recentEventLogs.remove(recentEventLogs.size() - 1);
+        }
     }
 
     @Override
@@ -35,36 +52,51 @@ public class StatisticsHUD extends JPanel {
         int decomposers = grid.queryEntities(Decomposer.class).size();
         int carcasses = grid.queryEntities(Carcass.class).size();
 
+        EcosystemSummary summary = engine.getLatestSummary();
+
         int y = 25;
         g2.setColor(Color.WHITE);
         g2.setFont(new Font("SansSerif", Font.BOLD, 16));
         g2.drawString("Ecosystem Dashboard", 15, y);
 
-        y += 25;
+        y += 22;
         g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
         g2.setColor(new Color(180, 190, 200));
         g2.drawString(String.format("Time: %.1fs  |  Tick: %d", engine.getTotalSimulatedTime(), engine.getTotalTicks()), 15, y);
 
         y += 18;
-        g2.drawString(String.format("Max Generation: Gen %d", engine.getHighestGeneration()), 15, y);
+        g2.drawString(String.format("Max Pedigree Generation: Gen %d", engine.getHighestGeneration()), 15, y);
 
-        y += 28;
+        if (summary != null) {
+            y += 18;
+            g2.setColor(new Color(130, 220, 150));
+            g2.drawString(String.format("Shannon Diversity (H'): %.3f", summary.shannonDiversityIndex()), 15, y);
+            y += 18;
+            g2.setColor(new Color(180, 200, 220));
+            g2.drawString(String.format("Mean Speed: %.1f | Vision: %.1f", summary.averageSpeed(), summary.averageVisionRadius()), 15, y);
+        }
+
+        y += 26;
         g2.setFont(new Font("SansSerif", Font.BOLD, 13));
         drawMetricRow(g2, "Plants (Autotrophs):", plants, new Color(34, 177, 76), 15, y);
-        y += 22;
+        y += 20;
         drawMetricRow(g2, "Herbivores (Prey):", herbivores, new Color(50, 150, 250), 15, y);
-        y += 22;
+        y += 20;
         drawMetricRow(g2, "Carnivores (Predators):", carnivores, new Color(220, 50, 50), 15, y);
-        y += 22;
+        y += 20;
         drawMetricRow(g2, "Apex Predators:", apex, new Color(140, 20, 180), 15, y);
-        y += 22;
+        y += 20;
         drawMetricRow(g2, "Decomposers:", decomposers, new Color(200, 160, 40), 15, y);
-        y += 22;
+        y += 20;
         drawMetricRow(g2, "Carcasses (Biomass):", carcasses, new Color(139, 69, 19), 15, y);
 
         // Draw Real-time Population Graph
-        y += 35;
-        drawPopulationGraph(g2, 15, y, getWidth() - 30, 220);
+        y += 30;
+        drawPopulationGraph(g2, 15, y, getWidth() - 30, 190);
+
+        // Draw Observer Event Log Ticker
+        y += 205;
+        drawEventTicker(g2, 15, y, getWidth() - 30, 160);
     }
 
     private void drawMetricRow(Graphics2D g2, String label, int count, Color color, int x, int y) {
@@ -84,7 +116,7 @@ public class StatisticsHUD extends JPanel {
 
         g2.setColor(new Color(150, 160, 170));
         g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        g2.drawString("Population History", x + 8, y + 16);
+        g2.drawString("Population History (Lotka-Volterra)", x + 8, y + 16);
 
         List<Integer> plants = engine.getPlantHistory();
         List<Integer> herbivores = engine.getHerbivoreHistory();
@@ -94,7 +126,6 @@ public class StatisticsHUD extends JPanel {
         int points = plants.size();
         if (points < 2) return;
 
-        // Find max scale
         int maxVal = 50;
         for (int i = 0; i < points; i++) {
             maxVal = Math.max(maxVal, plants.get(i));
@@ -103,21 +134,42 @@ public class StatisticsHUD extends JPanel {
             maxVal = Math.max(maxVal, apex.get(i));
         }
 
-        drawGraphLine(g2, plants, maxVal, new Color(34, 177, 76), x, y, w, h);
-        drawGraphLine(g2, herbivores, maxVal, new Color(50, 150, 250), x, y, w, h);
-        drawGraphLine(g2, carnivores, maxVal, new Color(220, 50, 50), x, y, w, h);
-        drawGraphLine(g2, apex, maxVal, new Color(140, 20, 180), x, y, w, h);
+        drawLineSeries(g2, plants, new Color(34, 177, 76), x, y + 20, w, h - 25, maxVal);
+        drawLineSeries(g2, herbivores, new Color(50, 150, 250), x, y + 20, w, h - 25, maxVal);
+        drawLineSeries(g2, carnivores, new Color(220, 50, 50), x, y + 20, w, h - 25, maxVal);
+        drawLineSeries(g2, apex, new Color(140, 20, 180), x, y + 20, w, h - 25, maxVal);
     }
 
-    private void drawGraphLine(Graphics2D g2, List<Integer> history, int maxVal, Color color, int x, int y, int w, int h) {
+    private void drawLineSeries(Graphics2D g2, List<Integer> series, Color color, int x, int y, int w, int h, int maxVal) {
         g2.setColor(color);
-        int n = history.size();
+        int n = series.size();
         for (int i = 0; i < n - 1; i++) {
-            int x1 = x + (i * w) / Math.max(1, n - 1);
-            int y1 = y + h - (int) ((history.get(i) / (double) maxVal) * (h - 25));
-            int x2 = x + ((i + 1) * w) / Math.max(1, n - 1);
-            int y2 = y + h - (int) ((history.get(i + 1) / (double) maxVal) * (h - 25));
+            int x1 = x + (i * w) / (n - 1);
+            int y1 = y + h - (series.get(i) * h) / maxVal;
+            int x2 = x + ((i + 1) * w) / (n - 1);
+            int y2 = y + h - (series.get(i + 1) * h) / maxVal;
             g2.drawLine(x1, y1, x2, y2);
+        }
+    }
+
+    private synchronized void drawEventTicker(Graphics2D g2, int x, int y, int w, int h) {
+        g2.setColor(new Color(10, 14, 18));
+        g2.fillRect(x, y, w, h);
+        g2.setColor(new Color(50, 60, 70));
+        g2.drawRect(x, y, w, h);
+
+        g2.setColor(new Color(255, 180, 50));
+        g2.setFont(new Font("SansSerif", Font.BOLD, 11));
+        g2.drawString("Observer Event Bus Ticker", x + 8, y + 16);
+
+        g2.setFont(new Font("Monospaced", Font.PLAIN, 10));
+        g2.setColor(new Color(200, 210, 220));
+
+        int logY = y + 34;
+        for (String log : recentEventLogs) {
+            if (logY > y + h - 6) break;
+            g2.drawString(log, x + 8, logY);
+            logY += 15;
         }
     }
 }
