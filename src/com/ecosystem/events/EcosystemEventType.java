@@ -12,3 +12,4 @@ public enum EcosystemEventType {
     TROPHIC_COLLAPSE_WARNING,
     SPECIES_DOMINANCE
 }
+

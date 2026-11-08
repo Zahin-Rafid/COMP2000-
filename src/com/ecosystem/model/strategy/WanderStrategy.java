@@ -30,3 +30,4 @@ public class WanderStrategy implements MovementStrategy {
         return circleCenter.add(displacement);
     }
 }
+

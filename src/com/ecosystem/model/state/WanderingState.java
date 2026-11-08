@@ -65,3 +65,4 @@ public class WanderingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
+

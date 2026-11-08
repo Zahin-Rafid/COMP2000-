@@ -22,3 +22,4 @@ public class EvasiveStrategy implements MovementStrategy {
         return fallbackWander.calculateSteering(animal, grid, deltaSeconds);
     }
 }
+

@@ -67,3 +67,4 @@ public class FleeingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
+

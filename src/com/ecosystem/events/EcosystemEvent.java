@@ -17,3 +17,4 @@ public record EcosystemEvent(
         return new EcosystemEvent(type, message, location, tick, source);
     }
 }
+

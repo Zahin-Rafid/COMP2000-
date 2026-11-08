@@ -35,3 +35,4 @@ public interface AnimalState {
      */
     Color getStatusColor();
 }
+

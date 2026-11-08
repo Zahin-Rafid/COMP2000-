@@ -67,3 +67,4 @@ public class MatingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
+

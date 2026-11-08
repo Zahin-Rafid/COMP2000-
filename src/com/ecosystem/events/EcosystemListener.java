@@ -13,3 +13,4 @@ public interface EcosystemListener {
      */
     void onEcosystemEvent(EcosystemEvent event);
 }
+

@@ -49,3 +49,4 @@ public class CamouflageBuff extends OrganismDecorator {
         }
     }
 }
+

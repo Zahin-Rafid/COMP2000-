@@ -64,3 +64,4 @@ public class FlockingStrategy implements MovementStrategy {
                 .add(fallbackWander.calculateSteering(animal, grid, deltaSeconds).multiply(0.2));
     }
 }
+

@@ -17,7 +17,7 @@ public class AmbushStrategy implements MovementStrategy {
     @Override
     public Vector2D calculateSteering(Animal animal, SpatialGrid<Entity> grid, double deltaSeconds) {
         Cell currentCell = grid.getCellAtWorldCoords(animal.getPosition());
-        
+
         // If already concealed in forest cover, slow down dramatically to wait
         if (currentCell != null && currentCell.getBiome() == BiomeType.FOREST) {
             return animal.getVelocity().multiply(-0.8); // Deceleration force

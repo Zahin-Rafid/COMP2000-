@@ -63,3 +63,4 @@ public class InfectedDebuff extends OrganismDecorator {
         }
     }
 }
+

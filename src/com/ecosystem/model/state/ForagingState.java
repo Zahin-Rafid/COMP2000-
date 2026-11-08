@@ -74,3 +74,4 @@ public class ForagingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
+

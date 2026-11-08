@@ -17,8 +17,7 @@ public record EcosystemSummary(
         double averageVisionRadius,
         double primaryProducersBiomass,
         double consumersBiomass,
-        double predatorsBiomass
-) {
+        double predatorsBiomass) {
     public EcosystemSummary {
         speciesCounts = Collections.unmodifiableMap(speciesCounts);
     }

@@ -51,3 +51,4 @@ public class RestingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
+
