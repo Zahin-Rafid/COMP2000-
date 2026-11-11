@@ -81,7 +81,9 @@ public class Carnivore extends Animal {
             // Drop carcass remains
             try {
                 grid.addEntity(new Carcass(herbivore.getPosition(), 15.0));
-            } catch (EntityOutOfBoundsException ignored) {}
+            } catch (EntityOutOfBoundsException e) {
+                System.err.println("Skipped out-of-bounds carcass drop: " + e.getMessage());
+            }
 
             EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
                     EcosystemEventType.PREDATION_OCCURRED,
@@ -94,7 +96,9 @@ public class Carnivore extends Animal {
             try {
                 double harvested = carcass.harvestBiomass(20.0);
                 addEnergy(harvested * 1.8);
-            } catch (ResourceDepletedException ignored) {}
+            } catch (ResourceDepletedException e) {
+                carcass.markDead();
+            }
         }
     }
 

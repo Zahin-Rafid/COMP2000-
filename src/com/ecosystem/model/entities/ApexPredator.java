@@ -74,7 +74,8 @@ public class ApexPredator extends Animal {
             prey.markDead();
             try {
                 grid.addEntity(new Carcass(prey.getPosition(), 25.0));
-            } catch (EntityOutOfBoundsException ignored) {
+            } catch (EntityOutOfBoundsException e) {
+                System.err.println("Skipped out-of-bounds carcass drop: " + e.getMessage());
             }
 
             EcosystemEventBus.getInstance().publish(EcosystemEvent.of(

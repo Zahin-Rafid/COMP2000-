@@ -45,7 +45,7 @@ public class EcosystemVerificationTest {
                 energy.consume(1.0);
                 System.err.println("FAIL 1: Expected ResourceDepletedException");
             } catch (ResourceDepletedException e) {
-                System.out.println("PASS 1: ResourceDepletedException thrown correctly.");
+                System.out.println("PASS 1: ResourceDepletedException thrown: " + e.getMessage());
                 passed++;
             }
         } catch (Exception e) {
@@ -64,7 +64,7 @@ public class EcosystemVerificationTest {
                 grid.addEntity(outOfBounds);
                 System.err.println("FAIL 2: Expected EntityOutOfBoundsException");
             } catch (EntityOutOfBoundsException e) {
-                System.out.println("PASS 2: EntityOutOfBoundsException caught properly.");
+                System.out.println("PASS 2: EntityOutOfBoundsException caught: " + e.getMessage());
                 passed++;
             }
         } catch (Exception e) {
@@ -74,10 +74,10 @@ public class EcosystemVerificationTest {
         // Test 3: Genome validation & InvalidGenomeException
         try {
             try {
-                new Genome(-50.0, 100.0, 5.0, 1.0, 0.1);
-                System.err.println("FAIL 3: Expected InvalidGenomeException");
+                Genome invalid = new Genome(-50.0, 100.0, 5.0, 1.0, 0.1);
+                System.err.println("FAIL 3: Expected InvalidGenomeException for speed " + invalid.getSpeed());
             } catch (InvalidGenomeException e) {
-                System.out.println("PASS 3: InvalidGenomeException caught.");
+                System.out.println("PASS 3: InvalidGenomeException caught: " + e.getMessage());
                 passed++;
             }
         } catch (Exception e) {
@@ -90,7 +90,7 @@ public class EcosystemVerificationTest {
                 ConfigLoader.parseConfig("invalid_property_line_without_equals");
                 System.err.println("FAIL 4: Expected InvalidConfigurationException");
             } catch (InvalidConfigurationException e) {
-                System.out.println("PASS 4: InvalidConfigurationException caught.");
+                System.out.println("PASS 4: InvalidConfigurationException caught: " + e.getMessage());
                 passed++;
             }
         } catch (Exception e) {

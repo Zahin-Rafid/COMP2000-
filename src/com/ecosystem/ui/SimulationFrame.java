@@ -19,7 +19,7 @@ public final class SimulationFrame extends JFrame {
     public SimulationFrame(Engine engine) {
         super("COMP2000 - Multi-Tier Ecosystem & Evolution Simulation");
 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         this.simulationPanel = new SimulationPanel(engine);

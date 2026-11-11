@@ -111,7 +111,7 @@ public final class StatisticsHUD extends JPanel {
 
         // Draw State & Decorator Legend at bottom
         y += 162;
-        drawLegend(g2, 15, y, getWidth() - 30);
+        drawLegend(g2, 15, y);
     }
 
     private void drawMetricRow(Graphics2D g2, String label, int count, Color color, int x, int y) {
@@ -194,7 +194,7 @@ public final class StatisticsHUD extends JPanel {
         g2.setClip(oldClip);
     }
 
-    private void drawLegend(Graphics2D g2, int x, int y, int w) {
+    private void drawLegend(Graphics2D g2, int x, int y) {
         g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
         g2.setColor(new Color(150, 160, 170));
         g2.drawString("States & Decorators:", x, y);

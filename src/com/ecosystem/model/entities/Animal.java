@@ -141,8 +141,7 @@ public abstract class Animal extends Organism {
     /**
      * Advances the animal's position, checks boundaries, and drains kinetic energy.
      */
-    public void applyKineticMovement(SpatialGrid<Entity> grid, Vector2D force, double deltaSeconds)
-            throws EntityOutOfBoundsException {
+    public void applyKineticMovement(SpatialGrid<Entity> grid, Vector2D force, double deltaSeconds) {
         // Accelerate
         this.velocity = this.velocity.add(force.multiply(deltaSeconds * 4.0));
 
@@ -241,5 +240,6 @@ public abstract class Animal extends Organism {
     public abstract Optional<? extends Animal> findMate(SpatialGrid<Entity> grid);
     public abstract void consumeTarget(Entity food, SpatialGrid<Entity> grid);
     public abstract Animal breed(Animal mate);
+    @Override
     public abstract String getSpeciesName();
 }

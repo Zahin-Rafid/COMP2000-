@@ -108,7 +108,9 @@ public final class SimulationPanel extends JPanel {
                     onRefresh.run();
                 }
             }
-        } catch (EntityOutOfBoundsException ignored) {}
+        } catch (EntityOutOfBoundsException ex) {
+            System.err.println("Skipped spawn outside grid bounds: " + ex.getMessage());
+        }
     }
 
     public void setShowVisionHalos(boolean show) {

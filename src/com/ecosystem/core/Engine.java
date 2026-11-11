@@ -64,52 +64,32 @@ public final class Engine {
 
     public void populateWorld() {
         for (int i = 0; i < config.initialPlants(); i++) {
-            Vector2D pos = findRandomValidPosition();
-            if (pos != null) {
-                try {
-                    grid.addEntity(Plant.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
-            }
+            safeAddEntity(Plant.createDefault(findRandomValidPosition()));
         }
-
         for (int i = 0; i < config.initialHerbivores(); i++) {
-            Vector2D pos = findRandomValidPosition();
-            if (pos != null) {
-                try {
-                    grid.addEntity(Herbivore.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
-            }
+            safeAddEntity(Herbivore.createDefault(findRandomValidPosition()));
         }
-
         for (int i = 0; i < config.initialCarnivores(); i++) {
-            Vector2D pos = findRandomValidPosition();
-            if (pos != null) {
-                try {
-                    grid.addEntity(Carnivore.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
-            }
+            safeAddEntity(Carnivore.createDefault(findRandomValidPosition()));
         }
-
         for (int i = 0; i < config.initialApexPredators(); i++) {
-            Vector2D pos = findRandomValidPosition();
-            if (pos != null) {
-                try {
-                    grid.addEntity(ApexPredator.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
-            }
+            safeAddEntity(ApexPredator.createDefault(findRandomValidPosition()));
         }
-
         for (int i = 0; i < config.initialDecomposers(); i++) {
-            Vector2D pos = findRandomValidPosition();
-            if (pos != null) {
-                try {
-                    grid.addEntity(Decomposer.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
-            }
+            safeAddEntity(Decomposer.createDefault(findRandomValidPosition()));
         }
 
         grid.synchronizeEntities();
         recordStatistics();
+    }
+
+    private void safeAddEntity(Entity entity) {
+        if (entity == null) return;
+        try {
+            grid.addEntity(entity);
+        } catch (EntityOutOfBoundsException e) {
+            System.err.println("Skipped out-of-bounds spawn: " + e.getMessage());
+        }
     }
 
     private Vector2D findRandomValidPosition() {
@@ -165,7 +145,9 @@ public final class Engine {
                 if (entity instanceof AdrenalineBuff adrenaline && adrenaline.isExpired()) {
                     try {
                         grid.replaceEntity(adrenaline, adrenaline.getWrapped());
-                    } catch (EntityOutOfBoundsException ignored) {}
+                    } catch (EntityOutOfBoundsException e) {
+                        System.err.println("Failed to unwrap adrenaline buff: " + e.getMessage());
+                    }
                 }
 
                 if (entity instanceof Organism org) {
@@ -183,9 +165,7 @@ public final class Engine {
                 Vector2D seedPos = findRandomValidPosition();
                 Cell cell = grid.getCellAtWorldCoords(seedPos);
                 if (cell != null && cell.getSoilNutrients().getCurrentAmount() > 15.0) {
-                    try {
-                        grid.addEntity(Plant.createDefault(seedPos));
-                    } catch (EntityOutOfBoundsException ignored) {}
+                    safeAddEntity(Plant.createDefault(seedPos));
                 }
             }
         }
@@ -293,9 +273,15 @@ public final class Engine {
                 Cell cell = grid.getCellAtGridCoords(x, y);
                 if (cell != null) {
                     try {
-                        cell.getSoilNutrients().consume(cell.getSoilNutrients().getCurrentAmount() * severity);
-                        cell.getMoisture().consume(cell.getMoisture().getCurrentAmount() * severity);
-                    } catch (Exception ignored) {}
+                        if (cell.getSoilNutrients().hasAvailable()) {
+                            cell.getSoilNutrients().consume(cell.getSoilNutrients().getCurrentAmount() * severity);
+                        }
+                        if (cell.getMoisture().hasAvailable()) {
+                            cell.getMoisture().consume(cell.getMoisture().getCurrentAmount() * severity);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Drought resource adjustment warning: " + e.getMessage());
+                    }
                 }
             }
         }
@@ -325,12 +311,7 @@ public final class Engine {
             }
         }
         for (int i = 0; i < 25; i++) {
-            Vector2D pos = findRandomValidPosition();
-            if (pos != null) {
-                try {
-                    grid.addEntity(Plant.createDefault(pos));
-                } catch (EntityOutOfBoundsException ignored) {}
-            }
+            safeAddEntity(Plant.createDefault(findRandomValidPosition()));
         }
         grid.synchronizeEntities();
         this.latestSummary = computeParallelEcosystemMetrics();
