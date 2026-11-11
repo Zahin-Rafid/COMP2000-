@@ -9,11 +9,12 @@ import java.awt.*;
  * Main application window (JFrame) containing simulation canvas, control toolbar,
  * and live dashboard. Runs the 60 FPS animation timer.
  */
-public class SimulationFrame extends JFrame {
-    private final SimulationPanel simulationPanel;
-    private final StatisticsHUD statisticsHUD;
-    private final ControlPanel controlPanel;
-    private final Timer animationTimer;
+public final class SimulationFrame extends JFrame {
+    private static final long serialVersionUID = 1L;
+    private final transient SimulationPanel simulationPanel;
+    private final transient StatisticsHUD statisticsHUD;
+    private final transient ControlPanel controlPanel;
+    private final transient Timer animationTimer;
 
     public SimulationFrame(Engine engine) {
         super("COMP2000 - Multi-Tier Ecosystem & Evolution Simulation");

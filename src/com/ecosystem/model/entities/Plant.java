@@ -28,11 +28,10 @@ public class Plant extends Organism {
                 new Color(34, 177, 76),
                 initialEnergy,
                 100.0,
-                110.0,  // Max age in seconds
-                48.0,  // Reproduction threshold
+                110.0, // Max age in seconds
+                48.0, // Reproduction threshold
                 genome,
-                generation
-        );
+                generation);
     }
 
     public static Plant createDefault(Vector2D position) {
@@ -46,7 +45,8 @@ public class Plant extends Organism {
 
     @Override
     public void update(SpatialGrid<Entity> grid, double deltaSeconds) throws EntityOutOfBoundsException {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
 
         burnBaseMetabolism(deltaSeconds * 0.2);
 
@@ -109,7 +109,8 @@ public class Plant extends Organism {
 
     @Override
     public void render(Graphics2D g) {
-        if (!isAlive()) return;
+        if (!isAlive())
+            return;
         int r = (int) getRadius();
         int x = (int) (getPosition().getX() - r);
         int y = (int) (getPosition().getY() - r);

@@ -31,8 +31,8 @@ public class ApexPredator extends Animal {
                 110.0, // Max age
                 140.0, // Reproduction threshold
                 genome,
-                generation);
-        setMovementStrategy(new AmbushStrategy());
+                generation,
+                new AmbushStrategy());
     }
 
     public static ApexPredator createDefault(Vector2D position) {

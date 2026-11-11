@@ -10,7 +10,9 @@ import java.awt.*;
  * Control toolbar hosting user interaction widgets, speed sliders, brush selectors,
  * environmental disaster triggers, and decorator injectors.
  */
-public class ControlPanel extends JPanel {
+public final class ControlPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
+
     public ControlPanel(Engine engine, SimulationPanel simulationPanel, StatisticsHUD statisticsHUD) {
         setLayout(new FlowLayout(FlowLayout.LEFT, 6, 6));
         setBackground(new Color(30, 36, 42));

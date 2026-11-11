@@ -22,15 +22,16 @@ import java.awt.event.MouseEvent;
  * Custom JPanel drawing the 2D ecological terrain, entity layers, vision ranges,
  * disaster visual overlays, and interactive click/drag spawning.
  */
-public class SimulationPanel extends JPanel {
-    private final Engine engine;
-    private Runnable onRefresh;
+public final class SimulationPanel extends JPanel {
+    private static final long serialVersionUID = 1L;
+    private final transient Engine engine;
+    private transient Runnable onRefresh;
     private boolean showVisionHalos = false;
     private boolean showNutrientHeatmap = false;
     private String selectedSpawnTool = "Plant";
 
-    private Vector2D lastDragPos = null;
-    private volatile Vector2D activeEffectPos = null;
+    private transient Vector2D lastDragPos = null;
+    private volatile transient Vector2D activeEffectPos = null;
     private volatile Color activeEffectColor = null;
     private volatile long effectExpireTimeMs = 0L;
 

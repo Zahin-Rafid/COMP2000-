@@ -30,10 +30,9 @@ public class Herbivore extends Animal {
                 70.0, // Max age
                 75.0, // Reproduction threshold
                 genome,
-                generation
+                generation,
+                new FlockingStrategy(genome.getVisionRadius() * 0.6)
         );
-        // Default wandering movement strategy utilizes Flocking behavior
-        setMovementStrategy(new FlockingStrategy(genome.getVisionRadius() * 0.6));
     }
 
     public static Herbivore createDefault(Vector2D position) {

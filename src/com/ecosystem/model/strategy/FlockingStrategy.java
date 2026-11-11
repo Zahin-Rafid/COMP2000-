@@ -9,7 +9,8 @@ import java.util.List;
 
 /**
  * Concrete movement strategy implementing Reynolds' Boids flocking rules:
- * Cohesion (attraction to local flock center), Alignment (matching flock heading),
+ * Cohesion (attraction to local flock center), Alignment (matching flock
+ * heading),
  * and Separation (repelling to avoid crowding).
  */
 public class FlockingStrategy implements MovementStrategy {
@@ -23,7 +24,8 @@ public class FlockingStrategy implements MovementStrategy {
     @Override
     public Vector2D calculateSteering(Animal animal, SpatialGrid<Entity> grid, double deltaSeconds) {
         // Query conspecifics (same species) in sensory range using Streams API
-        List<? extends Animal> neighbors = grid.queryEntitiesNear(animal.getPosition(), perceptionRadius, animal.getClass())
+        List<? extends Animal> neighbors = grid
+                .queryEntitiesNear(animal.getPosition(), perceptionRadius, animal.getClass())
                 .stream()
                 .filter(other -> other != animal && other.isAlive())
                 .toList();
@@ -52,7 +54,8 @@ public class FlockingStrategy implements MovementStrategy {
         Vector2D steerCohesion = animal.calculateSteeringForce(center, 0.7);
 
         // Alignment force
-        Vector2D steerAlignment = alignmentVector.multiply(1.0 / neighbors.size()).subtract(animal.getVelocity()).multiply(0.5);
+        Vector2D steerAlignment = alignmentVector.multiply(1.0 / neighbors.size()).subtract(animal.getVelocity())
+                .multiply(0.5);
 
         // Separation force
         Vector2D steerSeparation = separationVector.multiply(1.5);
@@ -64,4 +67,3 @@ public class FlockingStrategy implements MovementStrategy {
                 .add(fallbackWander.calculateSteering(animal, grid, deltaSeconds).multiply(0.2));
     }
 }
-

@@ -25,7 +25,7 @@ import java.util.Random;
  * Main simulation coordinator driving time steps, entity updates, parallel metrics computation,
  * and environmental disaster events.
  */
-public class Engine {
+public final class Engine {
     private static final Random RNG = new Random();
 
     private final SimulationConfig config;

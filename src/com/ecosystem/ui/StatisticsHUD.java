@@ -17,9 +17,10 @@ import java.util.List;
  * HUD panel displaying live ecological metrics, trophic counts, Shannon Diversity Index,
  * real-time event ticker subscribed to the Observer event bus, and State/Decorator legend.
  */
-public class StatisticsHUD extends JPanel {
-    private final Engine engine;
-    private final List<String> recentEventLogs = new ArrayList<>();
+public final class StatisticsHUD extends JPanel {
+    private static final long serialVersionUID = 1L;
+    private final transient Engine engine;
+    private final transient List<String> recentEventLogs = new ArrayList<>();
 
     public StatisticsHUD(Engine engine) {
         this.engine = engine;

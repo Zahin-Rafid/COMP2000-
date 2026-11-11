@@ -1,11 +1,13 @@
 package com.ecosystem.core;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 /**
  * Fixed 2D vector for position, velocity, and force calculations.
  */
-public final class Vector2D {
+public final class Vector2D implements Serializable {
+    private static final long serialVersionUID = 1L;
     private final double x;
     private final double y;
 

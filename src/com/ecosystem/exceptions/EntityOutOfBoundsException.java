@@ -6,6 +6,7 @@ import com.ecosystem.core.Vector2D;
  * Thrown when an entity attempts to move or spawn outside the bounded simulation grid.
  */
 public class EntityOutOfBoundsException extends EcosystemException {
+    private static final long serialVersionUID = 1L;
     private final Vector2D attemptedPosition;
     private final double maxX;
     private final double maxY;

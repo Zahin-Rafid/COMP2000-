@@ -32,10 +32,9 @@ public class Carnivore extends Animal {
                 90.0, // Max age
                 95.0, // Reproduction threshold
                 genome,
-                generation
+                generation,
+                new AmbushStrategy()
         );
-        // Default movement strategy utilizes ambush and territorial hunting
-        setMovementStrategy(new AmbushStrategy());
     }
 
     public static Carnivore createDefault(Vector2D position) {

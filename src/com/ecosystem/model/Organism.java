@@ -8,7 +8,8 @@ import com.ecosystem.model.genetics.Genome;
 import java.awt.Color;
 
 /**
- * Abstract base class for living biological organisms requiring energy and metabolism.
+ * Abstract base class for living biological organisms requiring energy and
+ * metabolism.
  * Demonstrates inheritance hierarchy under Entity.
  */
 public abstract class Organism extends Entity {
@@ -21,8 +22,8 @@ public abstract class Organism extends Entity {
     private final int generation;
 
     public Organism(Vector2D position, double radius, Color color, double initialEnergy,
-                    double maxEnergy, double maxAge, double reproductionThreshold,
-                    Genome genome, int generation) {
+            double maxEnergy, double maxAge, double reproductionThreshold,
+            Genome genome, int generation) {
         super(position, radius, color);
         this.energy = initialEnergy;
         this.maxEnergy = maxEnergy;

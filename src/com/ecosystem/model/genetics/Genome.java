@@ -8,7 +8,7 @@ import java.util.Random;
  * Encapsulates the complete set of hereditary traits for an organism.
  * Handles chromosome mutation, crossover, and phenotypic validation.
  */
-public class Genome {
+public final class Genome {
     private static final Random RNG = new Random();
 
     private final Chromosome<Double> speedGene;

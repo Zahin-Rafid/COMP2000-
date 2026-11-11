@@ -39,15 +39,22 @@ public abstract class Animal extends Organism {
     public Animal(Vector2D position, double radius, Color color, double initialEnergy,
             double maxEnergy, double maxAge, double reproductionThreshold,
             Genome genome, int generation) {
+        this(position, radius, color, initialEnergy, maxEnergy, maxAge, reproductionThreshold,
+                genome, generation, new WanderStrategy());
+    }
+
+    public Animal(Vector2D position, double radius, Color color, double initialEnergy,
+            double maxEnergy, double maxAge, double reproductionThreshold,
+            Genome genome, int generation, MovementStrategy initialStrategy) {
         super(position, radius, color, initialEnergy, maxEnergy, maxAge, reproductionThreshold, genome, generation);
         this.velocity = new Vector2D(0, 0);
         this.headingAngle = RNG.nextDouble() * 2 * Math.PI;
         this.wanderAngle = this.headingAngle;
         this.isSprinting = false;
 
-        // Default state & movement strategy
+        // Default state & injected initial strategy
         this.currentState = new WanderingState();
-        this.movementStrategy = new WanderStrategy();
+        this.movementStrategy = (initialStrategy != null) ? initialStrategy : new WanderStrategy();
     }
 
     public AnimalState getCurrentState() {
@@ -64,7 +71,7 @@ public abstract class Animal extends Organism {
         return movementStrategy;
     }
 
-    public void setMovementStrategy(MovementStrategy movementStrategy) {
+    public final void setMovementStrategy(MovementStrategy movementStrategy) {
         if (movementStrategy != null) {
             this.movementStrategy = movementStrategy;
         }
