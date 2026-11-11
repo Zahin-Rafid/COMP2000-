@@ -2,6 +2,7 @@ package com.ecosystem.util;
 
 import com.ecosystem.model.Entity;
 import com.ecosystem.model.Organism;
+import com.ecosystem.model.decorator.OrganismDecorator;
 import com.ecosystem.model.entities.*;
 
 import java.util.DoubleSummaryStatistics;
@@ -10,24 +11,28 @@ import java.util.Map;
 import java.util.stream.Collector;
 
 /**
- * Utility class providing simulation-specific custom collectors built with {@code Collector.of()}.
- * Demonstrates advanced functional aggregation and thread-safe combiners for parallel streams.
+ * Utility class providing simulation-specific custom collectors built with
+ * {@code Collector.of()}.
+ * Demonstrates advanced functional aggregation and thread-safe combiners for
+ * parallel streams.
  */
 public final class EcosystemCollectors {
 
-    private EcosystemCollectors() {}
+    private EcosystemCollectors() {
+    }
 
     /**
-     * Custom collector accumulating entities into a holistic {@link EcosystemSummary} in a single pass.
-     * Fully associative combiner guarantees thread-safety during parallel stream reduction.
+     * Custom collector accumulating entities into a holistic
+     * {@link EcosystemSummary} in a single pass.
+     * Fully associative combiner guarantees thread-safety during parallel stream
+     * reduction.
      */
     public static Collector<Entity, ?, EcosystemSummary> toEcosystemSummary() {
         return Collector.of(
                 Accumulator::new,
                 Accumulator::accumulate,
                 Accumulator::merge,
-                Accumulator::finish
-        );
+                Accumulator::finish);
     }
 
     private static class Accumulator {
@@ -43,12 +48,14 @@ public final class EcosystemCollectors {
         private long totalOrganisms = 0;
 
         void accumulate(Entity entity) {
-            if (!entity.isAlive()) return;
+            if (!entity.isAlive())
+                return;
 
-            String species = entity.getClass().getSimpleName();
+            Entity resolved = (entity instanceof OrganismDecorator dec) ? dec.unwrap() : entity;
+            String species = resolved.getClass().getSimpleName();
             speciesCounts.put(species, speciesCounts.getOrDefault(species, 0L) + 1L);
 
-            if (entity instanceof Organism org) {
+            if (resolved instanceof Organism org) {
                 totalOrganisms++;
                 double energy = org.getEnergy();
                 energyStats.accept(energy);
@@ -64,14 +71,14 @@ public final class EcosystemCollectors {
                 } else if (org instanceof Carnivore || org instanceof ApexPredator) {
                     predatorsBiomass += energy;
                 }
-            } else if (entity instanceof Carcass carcass) {
+            } else if (resolved instanceof Carcass carcass) {
                 totalBiomass += carcass.getBiomass();
             }
         }
 
         Accumulator merge(Accumulator other) {
-            other.speciesCounts.forEach((species, count) ->
-                    this.speciesCounts.put(species, this.speciesCounts.getOrDefault(species, 0L) + count));
+            other.speciesCounts.forEach((species, count) -> this.speciesCounts.put(species,
+                    this.speciesCounts.getOrDefault(species, 0L) + count));
 
             this.energyStats.combine(other.energyStats);
             this.speedStats.combine(other.speedStats);
@@ -87,10 +94,12 @@ public final class EcosystemCollectors {
         }
 
         EcosystemSummary finish() {
-            // Compute Shannon Diversity Index: H' = -sum(p_i * ln(p_i))
+            // Compute Shannon Diversity Index over living organism species: H' = -sum(p_i * ln(p_i))
             double shannonIndex = 0.0;
             if (totalOrganisms > 0) {
-                for (long count : speciesCounts.values()) {
+                for (Map.Entry<String, Long> entry : speciesCounts.entrySet()) {
+                    if ("Carcass".equals(entry.getKey())) continue;
+                    long count = entry.getValue();
                     if (count > 0) {
                         double p = (double) count / totalOrganisms;
                         shannonIndex -= p * Math.log(p);
@@ -108,8 +117,7 @@ public final class EcosystemCollectors {
                     visionStats.getCount() > 0 ? visionStats.getAverage() : 0.0,
                     primaryProducersBiomass,
                     consumersBiomass,
-                    predatorsBiomass
-            );
+                    predatorsBiomass);
         }
     }
 }

@@ -16,14 +16,14 @@ public class Main {
             cellSize=25.0
 
             # Initial Population Distribution
-            initialPlants=85
-            initialHerbivores=35
-            initialCarnivores=12
-            initialApexPredators=4
-            initialDecomposers=15
+            initialPlants=110
+            initialHerbivores=32
+            initialCarnivores=8
+            initialApexPredators=3
+            initialDecomposers=12
 
             # Environment Parameters
-            soilRegenRate=0.8
+            soilRegenRate=1.6
             """;
 
     public static void main(String[] args) {

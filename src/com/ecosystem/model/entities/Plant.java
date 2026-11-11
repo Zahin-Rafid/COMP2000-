@@ -28,8 +28,8 @@ public class Plant extends Organism {
                 new Color(34, 177, 76),
                 initialEnergy,
                 100.0,
-                80.0,  // Max age in seconds
-                60.0,  // Reproduction threshold
+                110.0,  // Max age in seconds
+                48.0,  // Reproduction threshold
                 genome,
                 generation
         );
@@ -52,7 +52,7 @@ public class Plant extends Organism {
 
         Cell cell = grid.getCellAtWorldCoords(getPosition());
         if (cell != null && cell.getBiome().isTraversableByLand()) {
-            double rate = 4.0 * cell.getBiome().getFertilityFactor() * deltaSeconds;
+            double rate = 6.0 * cell.getBiome().getFertilityFactor() * deltaSeconds;
             try {
                 double extracted = cell.extractNutrients(rate);
                 addEnergy(extracted);

@@ -41,7 +41,7 @@ public class Carnivore extends Animal {
     public static Carnivore createDefault(Vector2D position) {
         try {
             Genome defaultGenome = new Genome(85.0, 130.0, 6.5, 1.2, 0.06);
-            return new Carnivore(position, 60.0, defaultGenome, 1);
+            return new Carnivore(position, 85.0, defaultGenome, 1);
         } catch (InvalidGenomeException e) {
             throw new RuntimeException("Default carnivore genome initialization failed", e);
         }

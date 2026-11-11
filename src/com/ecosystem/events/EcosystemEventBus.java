@@ -11,11 +11,20 @@ public class EcosystemEventBus {
     private static final EcosystemEventBus INSTANCE = new EcosystemEventBus();
 
     private final List<EcosystemListener> listeners = new CopyOnWriteArrayList<>();
+    private volatile long currentTick = 0;
 
     private EcosystemEventBus() {}
 
     public static EcosystemEventBus getInstance() {
         return INSTANCE;
+    }
+
+    public void setCurrentTick(long tick) {
+        this.currentTick = tick;
+    }
+
+    public long getCurrentTick() {
+        return currentTick;
     }
 
     public void subscribe(EcosystemListener listener) {
@@ -30,9 +39,13 @@ public class EcosystemEventBus {
 
     public void publish(EcosystemEvent event) {
         if (event == null) return;
+        EcosystemEvent stampedEvent = (event.tick() <= 0 && currentTick > 0)
+                ? new EcosystemEvent(event.type(), event.message(), event.location(), currentTick, event.sourceEntity())
+                : event;
+
         for (EcosystemListener listener : listeners) {
             try {
-                listener.onEcosystemEvent(event);
+                listener.onEcosystemEvent(stampedEvent);
             } catch (Exception e) {
                 System.err.println("Error notifying ecosystem observer: " + e.getMessage());
             }
@@ -43,4 +56,3 @@ public class EcosystemEventBus {
         listeners.clear();
     }
 }
-

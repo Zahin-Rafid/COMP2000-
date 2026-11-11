@@ -40,9 +40,13 @@ public class MatingState implements AnimalState {
         double matingRange = animal.getRadius() + mate.getRadius() + 4.0;
 
         if (dist <= matingRange) {
-            // Reproduce
+            // Reproduce and safely clamp newborn inside world bounds
             Animal offspring = animal.breed(mate);
             if (offspring != null) {
+                double pad = offspring.getRadius() + 4.0;
+                Vector2D safePos = offspring.getPosition().clamp(pad, pad,
+                        grid.getWorldWidth() - pad, grid.getWorldHeight() - pad);
+                offspring.setPosition(safePos);
                 grid.addEntity(offspring);
                 animal.consumeEnergy(animal.getReproductionThreshold() * 0.45);
                 mate.consumeEnergy(mate.getReproductionThreshold() * 0.45);
@@ -67,4 +71,3 @@ public class MatingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
-

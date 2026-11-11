@@ -38,8 +38,8 @@ public class Herbivore extends Animal {
 
     public static Herbivore createDefault(Vector2D position) {
         try {
-            Genome defaultGenome = new Genome(65.0, 90.0, 5.0, 1.0, 0.08);
-            return new Herbivore(position, 50.0, defaultGenome, 1);
+            Genome defaultGenome = new Genome(65.0, 95.0, 5.0, 1.0, 0.08);
+            return new Herbivore(position, 65.0, defaultGenome, 1);
         } catch (InvalidGenomeException e) {
             throw new RuntimeException("Default herbivore genome initialization failed", e);
         }
@@ -69,7 +69,7 @@ public class Herbivore extends Animal {
     @Override
     public void consumeTarget(Entity food, SpatialGrid<Entity> grid) {
         if (food instanceof Plant plant && plant.isAlive()) {
-            addEnergy(plant.getEnergy() * 0.85);
+            addEnergy(Math.max(25.0, plant.getEnergy() * 1.1));
             plant.markDead();
             EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
                     EcosystemEventType.PREDATION_OCCURRED,

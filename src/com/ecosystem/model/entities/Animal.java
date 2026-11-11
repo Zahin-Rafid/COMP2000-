@@ -180,7 +180,7 @@ public abstract class Animal extends Organism {
         setPosition(new Vector2D(clampedX, clampedY));
 
         // Energy consumption includes base metabolism + kinetic movement cost
-        double moveEnergyCost = (this.velocity.magnitude() / 50.0) * (isSprinting ? 2.5 : 1.0) * deltaSeconds;
+        double moveEnergyCost = (this.velocity.magnitude() / 80.0) * (isSprinting ? 1.8 : 0.7) * deltaSeconds;
         burnBaseMetabolism(deltaSeconds);
         consumeEnergy(moveEnergyCost);
     }

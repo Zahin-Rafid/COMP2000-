@@ -31,15 +31,14 @@ public class ApexPredator extends Animal {
                 110.0, // Max age
                 140.0, // Reproduction threshold
                 genome,
-                generation
-        );
+                generation);
         setMovementStrategy(new AmbushStrategy());
     }
 
     public static ApexPredator createDefault(Vector2D position) {
         try {
             Genome defaultGenome = new Genome(75.0, 160.0, 9.0, 1.4, 0.04);
-            return new ApexPredator(position, 100.0, defaultGenome, 1);
+            return new ApexPredator(position, 130.0, defaultGenome, 1);
         } catch (InvalidGenomeException e) {
             throw new RuntimeException("Default apex predator genome initialization failed", e);
         }
@@ -56,7 +55,8 @@ public class ApexPredator extends Animal {
         double vision = getGenome().getVisionRadius();
         // Prioritize carnivores for higher caloric density, then herbivores
         Optional<Carnivore> carnivore = grid.findNearest(getPosition(), vision, Carnivore.class, Entity::isAlive);
-        if (carnivore.isPresent()) return carnivore;
+        if (carnivore.isPresent())
+            return carnivore;
         return grid.findNearest(getPosition(), vision, Herbivore.class, Entity::isAlive);
     }
 
@@ -74,21 +74,22 @@ public class ApexPredator extends Animal {
             prey.markDead();
             try {
                 grid.addEntity(new Carcass(prey.getPosition(), 25.0));
-            } catch (EntityOutOfBoundsException ignored) {}
+            } catch (EntityOutOfBoundsException ignored) {
+            }
 
             EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
                     EcosystemEventType.PREDATION_OCCURRED,
                     "Apex Predator struck down " + prey.getClass().getSimpleName(),
                     getPosition(),
                     0,
-                    this
-            ));
+                    this));
         }
     }
 
     @Override
     public Animal breed(Animal mate) {
-        if (!(mate instanceof ApexPredator apexMate)) return null;
+        if (!(mate instanceof ApexPredator apexMate))
+            return null;
         try {
             Genome childGenome = getGenome().crossover(apexMate.getGenome()).mutate();
             double offsetAngle = RNG.nextDouble() * 2 * Math.PI;
@@ -100,8 +101,7 @@ public class ApexPredator extends Animal {
                     "Dominant Apex Predator born (Gen " + childGen + ")",
                     babyPos,
                     0,
-                    baby
-            ));
+                    baby));
             return baby;
         } catch (InvalidGenomeException e) {
             return null;
