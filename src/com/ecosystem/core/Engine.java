@@ -22,7 +22,8 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Main simulation coordinator driving time steps, entity updates, parallel metrics computation,
+ * Main simulation coordinator driving time steps, entity updates, parallel
+ * metrics computation,
  * and environmental disaster events.
  */
 public final class Engine {
@@ -84,7 +85,8 @@ public final class Engine {
     }
 
     private void safeAddEntity(Entity entity) {
-        if (entity == null) return;
+        if (entity == null)
+            return;
         try {
             grid.addEntity(entity);
         } catch (EntityOutOfBoundsException e) {
@@ -109,12 +111,14 @@ public final class Engine {
      * Advances simulation by deltaSeconds when running.
      */
     public synchronized void update(double deltaSeconds) {
-        if (!running) return;
+        if (!running)
+            return;
         executeStep(deltaSeconds);
     }
 
     /**
-     * Advances simulation by exactly one step regardless of paused state (used by Step button).
+     * Advances simulation by exactly one step regardless of paused state (used by
+     * Step button).
      */
     public synchronized void stepOnce(double deltaSeconds) {
         executeStep(deltaSeconds);
@@ -138,7 +142,8 @@ public final class Engine {
                     entity.update(grid, effectiveDelta);
                 } catch (EntityOutOfBoundsException e) {
                     System.err.println("Boundary clamp applied (" + e.getMessage() + ")");
-                    Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10, config.worldHeight() - 10);
+                    Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10,
+                            config.worldHeight() - 10);
                     entity.setPosition(safePos);
                 }
 
@@ -192,7 +197,8 @@ public final class Engine {
 
     /**
      * Sophisticated Parallel Stream calculation utilizing custom Collector.
-     * Guaranteed thread-safe by operating on an isolated snapshot with pure associative combiner.
+     * Guaranteed thread-safe by operating on an isolated snapshot with pure
+     * associative combiner.
      */
     public EcosystemSummary computeParallelEcosystemMetrics() {
         List<Entity> snapshot = grid.getAllEntitiesSnapshot();
@@ -264,8 +270,7 @@ public final class Engine {
                 "Wildfire burned " + caughtInFire.size() + " plants",
                 fireCenter,
                 totalTicks,
-                null
-        ));
+                null));
     }
 
     public synchronized void triggerDrought(double severity) {
@@ -286,7 +291,8 @@ public final class Engine {
                 }
             }
         }
-        // Inflict mild dehydration stress on plants so drought has immediate trophic impact
+        // Inflict mild dehydration stress on plants so drought has immediate trophic
+        // impact
         for (Plant plant : grid.queryEntities(Plant.class)) {
             plant.consumeEnergy(plant.getEnergy() * (severity * 0.25));
         }
@@ -297,8 +303,7 @@ public final class Engine {
                 "Severe Drought depleted soil & moisture",
                 new Vector2D(config.worldWidth() / 2, config.worldHeight() / 2),
                 totalTicks,
-                null
-        ));
+                null));
     }
 
     public synchronized void triggerFertileBloom() {
@@ -321,8 +326,7 @@ public final class Engine {
                 "Monsoon Bloom spawned 25 plants",
                 new Vector2D(config.worldWidth() / 2, config.worldHeight() / 2),
                 totalTicks,
-                null
-        ));
+                null));
     }
 
     /**
@@ -331,7 +335,8 @@ public final class Engine {
     public synchronized boolean infectRandomOrganism() {
         List<Organism> candidates = grid.queryEntities(Organism.class).stream()
                 .filter(o -> !OrganismDecorator.hasDecorator(o, InfectedDebuff.class))
-                .filter(o -> o instanceof Animal || (o instanceof OrganismDecorator dec && dec.unwrap() instanceof Animal))
+                .filter(o -> o instanceof Animal
+                        || (o instanceof OrganismDecorator dec && dec.unwrap() instanceof Animal))
                 .toList();
 
         if (candidates.isEmpty()) {
@@ -339,7 +344,8 @@ public final class Engine {
                     .filter(o -> !OrganismDecorator.hasDecorator(o, InfectedDebuff.class))
                     .toList();
         }
-        if (candidates.isEmpty()) return false;
+        if (candidates.isEmpty())
+            return false;
 
         Organism target = candidates.get(RNG.nextInt(candidates.size()));
         try {
@@ -350,8 +356,7 @@ public final class Engine {
                     "Pathogen outbreak infected " + target.getSpeciesName(),
                     target.getPosition(),
                     totalTicks,
-                    target
-            ));
+                    target));
             return true;
         } catch (EntityOutOfBoundsException e) {
             System.err.println("Failed to infect organism: " + e.getMessage());
@@ -360,20 +365,24 @@ public final class Engine {
     }
 
     /**
-     * Dynamically wraps a random Herbivore or Animal with CamouflageBuff or AdrenalineBuff.
+     * Dynamically wraps a random Herbivore or Animal with CamouflageBuff or
+     * AdrenalineBuff.
      */
     public synchronized boolean buffRandomOrganism() {
         List<Organism> candidates = grid.queryEntities(Organism.class).stream()
-                .filter(o -> o instanceof Animal || (o instanceof OrganismDecorator dec && dec.unwrap() instanceof Animal))
+                .filter(o -> o instanceof Animal
+                        || (o instanceof OrganismDecorator dec && dec.unwrap() instanceof Animal))
                 .filter(o -> !OrganismDecorator.hasDecorator(o, CamouflageBuff.class))
                 .toList();
 
-        if (candidates.isEmpty()) return false;
+        if (candidates.isEmpty())
+            return false;
         Organism target = candidates.get(RNG.nextInt(candidates.size()));
         try {
-            Organism decorated = (target instanceof Herbivore || (target instanceof OrganismDecorator dec && dec.unwrap() instanceof Herbivore))
-                    ? new CamouflageBuff(target, 0.5)
-                    : new AdrenalineBuff(target, 6.0);
+            Organism decorated = (target instanceof Herbivore
+                    || (target instanceof OrganismDecorator dec && dec.unwrap() instanceof Herbivore))
+                            ? new CamouflageBuff(target, 0.5)
+                            : new AdrenalineBuff(target, 6.0);
             String buffName = (decorated instanceof CamouflageBuff) ? "Camouflage" : "Adrenaline";
             grid.replaceEntity(target, decorated);
             grid.synchronizeEntities();
@@ -382,11 +391,11 @@ public final class Engine {
                     buffName + " trait applied to " + target.getSpeciesName(),
                     target.getPosition(),
                     totalTicks,
-                    decorated
-            ));
+                    decorated));
             return true;
         } catch (EntityOutOfBoundsException e) {
             System.err.println("Failed to apply trait buff: " + e.getMessage());
+
             return false;
         }
     }

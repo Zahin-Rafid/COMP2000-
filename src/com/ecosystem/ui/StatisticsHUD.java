@@ -14,8 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * HUD panel displaying live ecological metrics, trophic counts, Shannon Diversity Index,
- * real-time event ticker subscribed to the Observer event bus, and State/Decorator legend.
+ * HUD panel displaying live ecological metrics, trophic counts, Shannon
+ * Diversity Index,
+ * real-time event ticker subscribed to the Observer event bus, and
+ * State/Decorator legend.
  */
 public final class StatisticsHUD extends JPanel {
     private static final long serialVersionUID = 1L;
@@ -139,7 +141,8 @@ public final class StatisticsHUD extends JPanel {
         List<Integer> apex = engine.getApexHistory();
 
         int points = plants.size();
-        if (points < 2) return;
+        if (points < 2)
+            return;
 
         int maxVal = 50;
         for (int i = 0; i < points; i++) {
@@ -155,7 +158,8 @@ public final class StatisticsHUD extends JPanel {
         drawLineSeries(g2, apex, new Color(140, 20, 180), x, y + 20, w, h - 25, maxVal);
     }
 
-    private static void drawLineSeries(Graphics2D g2, List<Integer> series, Color color, int x, int y, int w, int h, int maxVal) {
+    private static void drawLineSeries(Graphics2D g2, List<Integer> series, Color color, int x, int y, int w, int h,
+            int maxVal) {
         g2.setColor(color);
         int n = series.size();
         for (int i = 0; i < n - 1; i++) {
@@ -185,7 +189,8 @@ public final class StatisticsHUD extends JPanel {
 
         int logY = y + 34;
         for (String log : recentEventLogs) {
-            if (logY > y + h - 6) break;
+            if (logY > y + h - 6)
+                break;
             String display = log.length() > 46 ? log.substring(0, 43) + "..." : log;
             g2.drawString(display, x + 8, logY);
             logY += 15;
