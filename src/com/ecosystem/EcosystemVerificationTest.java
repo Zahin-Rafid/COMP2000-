@@ -9,39 +9,43 @@ import com.ecosystem.exceptions.*;
 import com.ecosystem.grid.BoundedResource;
 import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
+import com.ecosystem.model.decorator.AdrenalineBuff;
+import com.ecosystem.model.decorator.CamouflageBuff;
 import com.ecosystem.model.decorator.InfectedDebuff;
 import com.ecosystem.model.entities.Herbivore;
 import com.ecosystem.model.entities.Plant;
 import com.ecosystem.model.genetics.Genome;
 import com.ecosystem.model.state.FleeingState;
+import com.ecosystem.model.state.RestingState;
 import com.ecosystem.model.state.WanderingState;
 import com.ecosystem.model.strategy.FlockingStrategy;
-import com.ecosystem.util.EcosystemCollectors;
 import com.ecosystem.util.EcosystemSummary;
 
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Headless test harness verifying domain logic, exception propagation, generics,
- * design patterns (State, Strategy, Observer, Decorator), and parallel streams.
+ * Comprehensive headless verification suite covering domain exceptions, generics,
+ * design patterns (State, Strategy, Observer, Decorator), parallel streams,
+ * interactive controls, and multi-tick ecosystem stability.
  */
 public class EcosystemVerificationTest {
     public static void main(String[] args) {
-        System.out.println("Starting Automated Ecosystem Logic & Patterns Verification...");
+        System.out.println("Starting Comprehensive Ecosystem Logic & Controls Verification...");
         int passed = 0;
-        int total = 10;
+        int total = 12;
 
         // Test 1: BoundedResource Generics & Exception
         try {
             BoundedResource<Double> energy = new BoundedResource<>("Energy", 50.0, 10.0);
             double taken = energy.consume(5.0);
-            assert Math.abs(taken - 5.0) < 0.001;
+            if (Math.abs(taken - 5.0) >= 0.001) throw new AssertionError("Consume mismatch");
             energy.consume(10.0);
             try {
                 energy.consume(1.0);
-                System.err.println("FAIL: Expected ResourceDepletedException");
+                System.err.println("FAIL 1: Expected ResourceDepletedException");
             } catch (ResourceDepletedException e) {
-                System.out.println("PASS 1: ResourceDepletedException thrown correctly: " + e.getMessage());
+                System.out.println("PASS 1: ResourceDepletedException thrown correctly.");
                 passed++;
             }
         } catch (Exception e) {
@@ -58,9 +62,9 @@ public class EcosystemVerificationTest {
             try {
                 Plant outOfBounds = Plant.createDefault(new Vector2D(9999.0, 9999.0));
                 grid.addEntity(outOfBounds);
-                System.err.println("FAIL: Expected EntityOutOfBoundsException");
+                System.err.println("FAIL 2: Expected EntityOutOfBoundsException");
             } catch (EntityOutOfBoundsException e) {
-                System.out.println("PASS 2: EntityOutOfBoundsException caught properly: " + e.getMessage());
+                System.out.println("PASS 2: EntityOutOfBoundsException caught properly.");
                 passed++;
             }
         } catch (Exception e) {
@@ -71,9 +75,9 @@ public class EcosystemVerificationTest {
         try {
             try {
                 new Genome(-50.0, 100.0, 5.0, 1.0, 0.1);
-                System.err.println("FAIL: Expected InvalidGenomeException");
+                System.err.println("FAIL 3: Expected InvalidGenomeException");
             } catch (InvalidGenomeException e) {
-                System.out.println("PASS 3: InvalidGenomeException caught: " + e.getMessage());
+                System.out.println("PASS 3: InvalidGenomeException caught.");
                 passed++;
             }
         } catch (Exception e) {
@@ -84,93 +88,159 @@ public class EcosystemVerificationTest {
         try {
             try {
                 ConfigLoader.parseConfig("invalid_property_line_without_equals");
-                System.err.println("FAIL: Expected InvalidConfigurationException");
+                System.err.println("FAIL 4: Expected InvalidConfigurationException");
             } catch (InvalidConfigurationException e) {
-                System.out.println("PASS 4: InvalidConfigurationException caught: " + e.getMessage());
+                System.out.println("PASS 4: InvalidConfigurationException caught.");
                 passed++;
             }
         } catch (Exception e) {
             System.err.println("FAIL Test 4: " + e.getMessage());
         }
 
-        // Test 5: State Pattern State Transitions
+        // Test 5: State Pattern Transitions (Wandering -> Fleeing -> Resting -> Wandering)
         try {
+            SpatialGrid<Entity> grid = new SpatialGrid<>(500, 500, 25);
             Herbivore herbivore = Herbivore.createDefault(new Vector2D(150, 150));
-            assert herbivore.getCurrentState() instanceof WanderingState;
+            if (!(herbivore.getCurrentState() instanceof WanderingState)) throw new AssertionError("Initial state");
             Plant dummyThreat = Plant.createDefault(new Vector2D(160, 160));
             herbivore.changeState(new FleeingState(dummyThreat));
-            assert herbivore.getCurrentState() instanceof FleeingState;
-            System.out.println("PASS 5: State Pattern transition (Wandering -> Fleeing) verified.");
+            if (!(herbivore.getCurrentState() instanceof FleeingState)) throw new AssertionError("Fleeing state");
+            herbivore.changeState(new RestingState());
+            for (int i = 0; i < 45; i++) {
+                herbivore.update(grid, 0.05);
+            }
+            if (!(herbivore.getCurrentState() instanceof WanderingState)) throw new AssertionError("Resting recovery");
+            System.out.println("PASS 5: State Pattern lifecycle transitions verified.");
             passed++;
         } catch (Exception e) {
             System.err.println("FAIL Test 5: " + e.getMessage());
         }
 
-        // Test 6: Strategy Pattern Steering Calculation
+        // Test 6: Strategy Pattern Steering & Lambda Substitution
         try {
             Herbivore herbivore = Herbivore.createDefault(new Vector2D(200, 200));
             SpatialGrid<Entity> grid = new SpatialGrid<>(500, 500, 25);
             herbivore.setMovementStrategy(new FlockingStrategy(50.0));
-            Vector2D force = herbivore.getMovementStrategy().calculateSteering(herbivore, grid, 0.05);
-            assert force != null;
-            System.out.println("PASS 6: Strategy Pattern (FlockingStrategy & dynamic swap) verified.");
+            Vector2D f1 = herbivore.getMovementStrategy().calculateSteering(herbivore, grid, 0.05);
+            herbivore.setMovementStrategy((a, g, dt) -> a.calculateSteeringForce(new Vector2D(300, 300), 1.0));
+            Vector2D f2 = herbivore.getMovementStrategy().calculateSteering(herbivore, grid, 0.05);
+            if (f1 == null || f2 == null) throw new AssertionError("Null force");
+            System.out.println("PASS 6: Strategy Pattern (FlockingStrategy & lambda substitution) verified.");
             passed++;
         } catch (Exception e) {
             System.err.println("FAIL Test 6: " + e.getMessage());
         }
 
-        // Test 7: Observer Pattern Event Dispatch
+        // Test 7: Observer Pattern Event Dispatch & Stamping
         try {
             AtomicInteger eventsReceived = new AtomicInteger(0);
             EcosystemEventBus.getInstance().subscribe(event -> eventsReceived.incrementAndGet());
-            SimulationConfig config = SimulationConfig.createDefault();
-            Engine engine = new Engine(config);
+            Engine engine = new Engine(SimulationConfig.createDefault());
+            engine.update(0.05);
             engine.triggerFertileBloom();
-            assert eventsReceived.get() > 0;
-            System.out.println("PASS 7: Observer Pattern decoupled event publication received by listener.");
+            if (eventsReceived.get() <= 0) throw new AssertionError("No events received");
+            System.out.println("PASS 7: Observer Pattern decoupled event publication verified.");
             passed++;
         } catch (Exception e) {
             System.err.println("FAIL Test 7: " + e.getMessage());
         }
 
-        // Test 8: Decorator Pattern Dynamic Wrapping
+        // Test 8: Decorator Pattern Wrapping & SpatialGrid Unwrapping
         try {
+            SpatialGrid<Entity> grid = new SpatialGrid<>(500, 500, 25);
             Herbivore herbivore = Herbivore.createDefault(new Vector2D(250, 250));
-            InfectedDebuff infected = new InfectedDebuff(herbivore, 3.0);
-            assert infected.getWrapped() == herbivore;
-            assert infected.getEnergy() == herbivore.getEnergy();
-            System.out.println("PASS 8: Decorator Pattern (InfectedDebuff wrapping Organism) verified.");
+            InfectedDebuff infected = new InfectedDebuff(new CamouflageBuff(herbivore, 0.5), 3.0);
+            grid.addEntity(infected);
+            grid.synchronizeEntities();
+
+            List<Herbivore> queriedHerbs = grid.queryEntities(Herbivore.class);
+            if (queriedHerbs.size() != 1 || queriedHerbs.get(0) != herbivore) {
+                throw new AssertionError("Decorator unwrap in SpatialGrid failed");
+            }
+            if (infected.unwrap() != herbivore) throw new AssertionError("unwrap() mismatch");
+            System.out.println("PASS 8: Decorator Pattern chaining & SpatialGrid unwrapping verified.");
             passed++;
         } catch (Exception e) {
             System.err.println("FAIL Test 8: " + e.getMessage());
         }
 
-        // Test 9: Custom Collector & Parallel Stream Execution
+        // Test 9: Parallel Streams + Custom Collector with Decorated Entities
         try {
-            SimulationConfig config = SimulationConfig.createDefault();
-            Engine engine = new Engine(config);
+            Engine engine = new Engine(SimulationConfig.createDefault());
+            engine.infectRandomOrganism();
+            engine.buffRandomOrganism();
             EcosystemSummary summary = engine.computeParallelEcosystemMetrics();
-            assert summary.totalOrganisms() > 0;
-            assert summary.shannonDiversityIndex() >= 0.0;
-            System.out.printf("PASS 9: Parallel Stream with Custom Collector: %d organisms, Shannon H' = %.3f%n",
+            if (summary.totalOrganisms() <= 0 || summary.shannonDiversityIndex() <= 0.0) {
+                throw new AssertionError("Summary calculation invalid");
+            }
+            System.out.printf("PASS 9: Parallel Stream Custom Collector: %d organisms, Shannon H' = %.3f%n",
                     summary.totalOrganisms(), summary.shannonDiversityIndex());
             passed++;
         } catch (Exception e) {
             System.err.println("FAIL Test 9: " + e.getMessage());
         }
 
-        // Test 10: Headless 300-tick simulation cycle
+        // Test 10: Interactive Pause, Step, Spawn, Disasters & Reset
         try {
-            SimulationConfig config = SimulationConfig.createDefault();
-            Engine engine = new Engine(config);
-            for (int i = 0; i < 300; i++) {
-                engine.update(0.05);
+            Engine engine = new Engine(SimulationConfig.createDefault());
+            engine.setRunning(false);
+            long tickBefore = engine.getTotalTicks();
+            engine.update(0.05); // Should not advance while paused
+            if (engine.getTotalTicks() != tickBefore) throw new AssertionError("Update ran while paused");
+
+            engine.stepOnce(0.05); // Step button MUST advance even while paused!
+            if (engine.getTotalTicks() != tickBefore + 1) throw new AssertionError("stepOnce failed when paused");
+
+            int countBefore = engine.getGrid().getAllEntities().size();
+            engine.spawnEntity(Plant.createDefault(new Vector2D(300, 300)));
+            if (engine.getGrid().getAllEntities().size() != countBefore + 1) {
+                throw new AssertionError("spawnEntity did not synchronize immediately");
             }
-            int entityCount = engine.getGrid().getAllEntities().size();
-            System.out.printf("PASS 10: Headless simulation completed 300 ticks smoothly. Active entities: %d%n", entityCount);
+
+            engine.triggerWildfire(new Vector2D(500, 350), 140.0);
+            engine.triggerDrought(0.5);
+            engine.triggerFertileBloom();
+            engine.reset();
+            if (engine.getTotalTicks() != 0 || !engine.isRunning()) {
+                throw new AssertionError("Reset state mismatch");
+            }
+            System.out.println("PASS 10: Interactive controls (Pause, Step, Spawn, Disasters, Reset) verified.");
             passed++;
         } catch (Exception e) {
             System.err.println("FAIL Test 10: " + e.getMessage());
+        }
+
+        // Test 11: AdrenalineBuff Expiration & Unwrapping
+        try {
+            Engine engine = new Engine(SimulationConfig.createDefault());
+            Herbivore herb = Herbivore.createDefault(new Vector2D(400, 300));
+            AdrenalineBuff buff = new AdrenalineBuff(herb, 0.1);
+            engine.spawnEntity(buff);
+            for (int i = 0; i < 5; i++) {
+                engine.update(0.05);
+            }
+            boolean stillWrapped = engine.getGrid().getAllEntities().stream()
+                    .anyMatch(e -> e == buff);
+            if (stillWrapped) throw new AssertionError("Expired AdrenalineBuff was not unwrapped");
+            System.out.println("PASS 11: Temporary AdrenalineBuff expiration & auto-unwrap verified.");
+            passed++;
+        } catch (Exception e) {
+            System.err.println("FAIL Test 11: " + e.getMessage());
+        }
+
+        // Test 12: Endurance 1500-Tick Ecological Stability Run
+        try {
+            Engine engine = new Engine(SimulationConfig.createDefault());
+            for (int i = 0; i < 1500; i++) {
+                engine.update(0.05);
+            }
+            EcosystemSummary summary = engine.computeParallelEcosystemMetrics();
+            System.out.printf("PASS 12: 1500-tick endurance run completed cleanly. Active organisms: %d, H' = %.3f, Species: %s%n",
+                    summary.totalOrganisms(), summary.shannonDiversityIndex(), summary.speciesCounts());
+            if (summary.totalOrganisms() <= 0) throw new AssertionError("Total ecosystem extinction");
+            passed++;
+        } catch (Exception e) {
+            System.err.println("FAIL Test 12: " + e.getMessage());
         }
 
         System.out.printf("%nResult: %d / %d Tests Passed Successfully.%n", passed, total);

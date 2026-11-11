@@ -10,8 +10,8 @@ import java.awt.Color;
 import java.util.Optional;
 
 /**
- * State representing metabolic resting and physical recovery.
- * Halts kinetic motion to minimize energy expenditure when stamina is depleted.
+ * State representing metabolic resting and physical recovery after an exhausting sprint.
+ * Halts kinetic motion to minimize energy expenditure before resuming foraging.
  */
 public class RestingState implements AnimalState {
     private static final Color STATUS_COLOR = new Color(160, 160, 160);
@@ -32,11 +32,20 @@ public class RestingState implements AnimalState {
         // Halts movement: velocity dampened
         animal.setVelocity(new Vector2D(0, 0));
         animal.setSprinting(false);
-        // Burn only fraction of metabolism during deep rest
-        animal.burnBaseMetabolism(deltaSeconds * 0.3);
+        // Burn minimal basal metabolism during deep rest
+        animal.burnBaseMetabolism(deltaSeconds * 0.15);
 
-        // Check if recovered enough energy or rested 4 seconds
-        if (animal.getEnergy() > animal.getMaxEnergy() * 0.35 || restDuration > 4.0) {
+        // If food is spotted nearby after brief catch-breath, immediately forage
+        if (restDuration > 0.8) {
+            Optional<? extends Entity> food = animal.findFood(grid);
+            if (food.isPresent()) {
+                animal.changeState(new ForagingState(food.get()));
+                return;
+            }
+        }
+
+        // Exit rest after catching breath (2 seconds) or sufficient recovery
+        if (animal.getEnergy() > animal.getMaxEnergy() * 0.35 || restDuration > 2.0) {
             animal.changeState(new WanderingState());
         }
     }
@@ -51,4 +60,3 @@ public class RestingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
-

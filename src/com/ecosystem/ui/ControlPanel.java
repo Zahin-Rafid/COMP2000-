@@ -2,46 +2,48 @@ package com.ecosystem.ui;
 
 import com.ecosystem.core.Engine;
 import com.ecosystem.core.Vector2D;
-import com.ecosystem.model.Organism;
-import com.ecosystem.model.decorator.InfectedDebuff;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.List;
 
 /**
  * Control toolbar hosting user interaction widgets, speed sliders, brush selectors,
- * and environmental disaster triggers.
+ * environmental disaster triggers, and decorator injectors.
  */
 public class ControlPanel extends JPanel {
-    public ControlPanel(Engine engine, SimulationPanel simulationPanel) {
-        setLayout(new FlowLayout(FlowLayout.LEFT, 10, 6));
+    public ControlPanel(Engine engine, SimulationPanel simulationPanel, StatisticsHUD statisticsHUD) {
+        setLayout(new FlowLayout(FlowLayout.LEFT, 6, 6));
         setBackground(new Color(30, 36, 42));
 
+        Runnable refreshUi = () -> {
+            simulationPanel.repaint();
+            statisticsHUD.repaint();
+        };
+
         // 1. Play / Pause Button
-        JButton pauseBtn = new JButton("Pause");
+        JButton pauseBtn = createStyledButton("Pause", new Color(65, 80, 95));
         pauseBtn.addActionListener(e -> {
             engine.toggleRunning();
             pauseBtn.setText(engine.isRunning() ? "Pause" : "Resume");
+            refreshUi.run();
         });
         add(pauseBtn);
 
-        // 2. Single Step Button
-        JButton stepBtn = new JButton("Step");
+        // 2. Single Step Button (works reliably when paused)
+        JButton stepBtn = createStyledButton("Step", new Color(65, 80, 95));
         stepBtn.addActionListener(e -> {
-            if (!engine.isRunning()) {
-                engine.update(0.05);
-                simulationPanel.repaint();
-            }
+            engine.stepOnce(0.05);
+            refreshUi.run();
         });
         add(stepBtn);
 
         // 3. Reset Button
-        JButton resetBtn = new JButton("Reset");
+        JButton resetBtn = createStyledButton("Reset", new Color(65, 80, 95));
         resetBtn.addActionListener(e -> {
+            statisticsHUD.clearEvents();
             engine.reset();
             pauseBtn.setText("Pause");
-            simulationPanel.repaint();
+            refreshUi.run();
         });
         add(resetBtn);
 
@@ -49,8 +51,8 @@ public class ControlPanel extends JPanel {
         JLabel speedLabel = new JLabel("Speed: 1.0x");
         speedLabel.setForeground(Color.WHITE);
         JSlider speedSlider = new JSlider(1, 50, 10);
-        speedSlider.setPreferredSize(new Dimension(100, 24));
-        speedSlider.setBackground(new Color(30, 36, 42));
+        speedSlider.setPreferredSize(new Dimension(90, 24));
+        speedSlider.setOpaque(false);
         speedSlider.addChangeListener(e -> {
             double multiplier = speedSlider.getValue() / 10.0;
             engine.setSpeedMultiplier(multiplier);
@@ -69,61 +71,75 @@ public class ControlPanel extends JPanel {
         add(toolBox);
 
         // 6. Disaster Triggers (Emergent Behavior & Observer Testing)
-        JButton fireBtn = new JButton("Wildfire");
-        fireBtn.setBackground(new Color(180, 50, 30));
-        fireBtn.setForeground(Color.WHITE);
+        JButton fireBtn = createStyledButton("Wildfire", new Color(180, 50, 30));
         fireBtn.addActionListener(e -> {
             double cx = engine.getConfig().worldWidth() / 2.0;
             double cy = engine.getConfig().worldHeight() / 2.0;
-            engine.triggerWildfire(new Vector2D(cx, cy), 130.0);
-            simulationPanel.repaint();
+            engine.triggerWildfire(new Vector2D(cx, cy), 140.0);
+            refreshUi.run();
         });
         add(fireBtn);
 
-        JButton droughtBtn = new JButton("Drought");
-        droughtBtn.setBackground(new Color(180, 130, 30));
-        droughtBtn.setForeground(Color.WHITE);
+        JButton droughtBtn = createStyledButton("Drought", new Color(175, 120, 25));
         droughtBtn.addActionListener(e -> {
             engine.triggerDrought(0.6);
-            simulationPanel.repaint();
+            refreshUi.run();
         });
         add(droughtBtn);
 
-        JButton bloomBtn = new JButton("Bloom");
-        bloomBtn.setBackground(new Color(40, 150, 60));
-        bloomBtn.setForeground(Color.WHITE);
+        JButton bloomBtn = createStyledButton("Bloom", new Color(40, 145, 65));
         bloomBtn.addActionListener(e -> {
             engine.triggerFertileBloom();
-            simulationPanel.repaint();
+            refreshUi.run();
         });
         add(bloomBtn);
 
-        // 7. Decorator Pattern Trigger (Infect Random Organism)
-        JButton infectBtn = new JButton("Infect");
-        infectBtn.setBackground(new Color(80, 140, 40));
-        infectBtn.setForeground(Color.WHITE);
+        // 7. Decorator Pattern Triggers
+        JButton infectBtn = createStyledButton("Infect", new Color(90, 140, 35));
         infectBtn.addActionListener(e -> {
-            List<Organism> organisms = engine.getGrid().queryEntities(Organism.class);
-            if (!organisms.isEmpty()) {
-                Organism target = organisms.get((int) (Math.random() * organisms.size()));
-                if (!(target instanceof InfectedDebuff)) {
-                    engine.getGrid().removeEntity(target);
-                    try {
-                        engine.getGrid().addEntity(new InfectedDebuff(target));
-                    } catch (Exception ignored) {}
-                }
-            }
+            engine.infectRandomOrganism();
+            refreshUi.run();
         });
         add(infectBtn);
 
+        JButton buffBtn = createStyledButton("Trait Buff", new Color(120, 80, 175));
+        buffBtn.addActionListener(e -> {
+            engine.buffRandomOrganism();
+            refreshUi.run();
+        });
+        add(buffBtn);
+
         // 8. View Toggles
+        JCheckBox visionCheck = new JCheckBox("Vision");
+        visionCheck.setForeground(Color.WHITE);
+        visionCheck.setOpaque(false);
+        visionCheck.setFocusPainted(false);
+        visionCheck.addActionListener(e -> {
+            simulationPanel.setShowVisionHalos(visionCheck.isSelected());
+            simulationPanel.repaint();
+        });
+        add(visionCheck);
+
         JCheckBox heatmapCheck = new JCheckBox("Nutrients");
         heatmapCheck.setForeground(Color.WHITE);
-        heatmapCheck.setBackground(new Color(30, 36, 42));
+        heatmapCheck.setOpaque(false);
+        heatmapCheck.setFocusPainted(false);
         heatmapCheck.addActionListener(e -> {
             simulationPanel.setShowNutrientHeatmap(heatmapCheck.isSelected());
             simulationPanel.repaint();
         });
         add(heatmapCheck);
+    }
+
+    private JButton createStyledButton(String text, Color bg) {
+        JButton btn = new JButton(text);
+        btn.setBackground(bg);
+        btn.setForeground(Color.WHITE);
+        btn.setOpaque(true);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setMargin(new Insets(4, 9, 4, 9));
+        btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        return btn;
     }
 }

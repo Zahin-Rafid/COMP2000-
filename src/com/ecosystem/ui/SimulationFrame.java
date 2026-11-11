@@ -23,7 +23,8 @@ public class SimulationFrame extends JFrame {
 
         this.simulationPanel = new SimulationPanel(engine);
         this.statisticsHUD = new StatisticsHUD(engine);
-        this.controlPanel = new ControlPanel(engine, simulationPanel);
+        this.controlPanel = new ControlPanel(engine, simulationPanel, statisticsHUD);
+        this.simulationPanel.setOnRefresh(statisticsHUD::repaint);
 
         add(controlPanel, BorderLayout.NORTH);
         add(simulationPanel, BorderLayout.CENTER);

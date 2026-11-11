@@ -3,6 +3,9 @@ package com.ecosystem.grid;
 import com.ecosystem.core.Vector2D;
 import com.ecosystem.exceptions.EntityOutOfBoundsException;
 import com.ecosystem.model.Entity;
+import com.ecosystem.model.Organism;
+import com.ecosystem.model.decorator.CamouflageBuff;
+import com.ecosystem.model.decorator.OrganismDecorator;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -26,6 +29,7 @@ public class SpatialGrid<T extends Entity> {
     private final List<T> allEntities;
     private final Queue<T> pendingAdditions;
     private final Queue<T> pendingRemovals;
+    private final Map<Long, Double> concealmentById;
 
     public SpatialGrid(double worldWidth, double worldHeight, double cellSize) {
         if (worldWidth <= 0 || worldHeight <= 0 || cellSize <= 0) {
@@ -42,6 +46,7 @@ public class SpatialGrid<T extends Entity> {
         // Concurrent queues prevent race conditions when multiple threads queue entities
         this.pendingAdditions = new ConcurrentLinkedQueue<>();
         this.pendingRemovals = new ConcurrentLinkedQueue<>();
+        this.concealmentById = new HashMap<>();
 
         initializeCells();
     }
@@ -123,17 +128,43 @@ public class SpatialGrid<T extends Entity> {
         pendingRemovals.add(entity);
     }
 
-    public synchronized void synchronizeEntities() {
-        T addition;
-        while ((addition = pendingAdditions.poll()) != null) {
-            allEntities.add(addition);
+    /**
+     * Atomically queues replacing an existing entity with a decorated or modified instance.
+     */
+    public void replaceEntity(T oldEntity, T newEntity) throws EntityOutOfBoundsException {
+        if (!isWithinBounds(newEntity.getPosition())) {
+            throw new EntityOutOfBoundsException(newEntity.getPosition(), worldWidth, worldHeight);
         }
+        pendingRemovals.add(oldEntity);
+        pendingAdditions.add(newEntity);
+    }
+
+    public synchronized void synchronizeEntities() {
         T removal;
         while ((removal = pendingRemovals.poll()) != null) {
             allEntities.remove(removal);
         }
+        T addition;
+        while ((addition = pendingAdditions.poll()) != null) {
+            allEntities.add(addition);
+        }
         // Purge dead entities via functional predicate
         allEntities.removeIf(e -> !e.isAlive());
+
+        // Rebuild O(1) concealment lookup for CamouflageBuff decorators
+        concealmentById.clear();
+        for (T e : allEntities) {
+            if (e instanceof OrganismDecorator dec) {
+                Organism curr = dec;
+                while (curr instanceof OrganismDecorator d) {
+                    if (d instanceof CamouflageBuff camo) {
+                        concealmentById.put(dec.unwrap().getId(), camo.getConcealmentFactor());
+                        break;
+                    }
+                    curr = d.getWrapped();
+                }
+            }
+        }
     }
 
     public synchronized List<T> getAllEntities() {
@@ -144,17 +175,30 @@ public class SpatialGrid<T extends Entity> {
         return new ArrayList<>(allEntities);
     }
 
-    /**
-     * Generic query method returning all entities matching a specific class or subclass.
-     * Expressed via declarative Streams API.
-     */
     @SuppressWarnings("unchecked")
+    private <E extends T> E matchEntityType(T entity, Class<E> typeClass) {
+        if (!entity.isAlive()) return null;
+        if (typeClass.isInstance(entity)) {
+            return (E) entity;
+        }
+        if (entity instanceof OrganismDecorator decorator) {
+            Organism base = decorator.unwrap();
+            if (base.isAlive() && typeClass.isInstance(base)) {
+                return (E) base;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Generic query method returning all entities matching a specific class or subclass,
+     * transparently unwrapping {@link OrganismDecorator} chains when querying concrete species.
+     */
     public <E extends T> List<E> queryEntities(Class<E> typeClass) {
         synchronized (this) {
             return allEntities.stream()
-                    .filter(Entity::isAlive)
-                    .filter(typeClass::isInstance)
-                    .map(e -> (E) e)
+                    .map(e -> matchEntityType(e, typeClass))
+                    .filter(Objects::nonNull)
                     .toList();
         }
     }
@@ -163,30 +207,40 @@ public class SpatialGrid<T extends Entity> {
      * Generic spatial query method returning all entities within a circular radius matching a type.
      * Uses Streams API with distance squared filtering to avoid expensive square-root calls.
      */
-    @SuppressWarnings("unchecked")
     public <E extends T> List<E> queryEntitiesNear(Vector2D center, double radius, Class<E> typeClass) {
         double radiusSq = radius * radius;
         synchronized (this) {
             return allEntities.stream()
                     .filter(Entity::isAlive)
-                    .filter(typeClass::isInstance)
                     .filter(e -> {
                         double dx = e.getPosition().getX() - center.getX();
                         double dy = e.getPosition().getY() - center.getY();
                         return (dx * dx + dy * dy) <= radiusSq;
                     })
-                    .map(e -> (E) e)
+                    .map(e -> matchEntityType(e, typeClass))
+                    .filter(Objects::nonNull)
                     .toList();
         }
     }
 
+    private double getConcealmentForEntity(Entity candidate) {
+        return concealmentById.getOrDefault(candidate.getId(), 0.0);
+    }
+
     /**
      * Finds the closest entity matching the specified type and predicate condition.
-     * Implemented using a concise, declarative stream pipeline with Comparator.comparingDouble.
+     * Implemented using a concise, declarative stream pipeline with Comparator.comparingDouble,
+     * honoring CamouflageBuff concealment penalties.
      */
     public <E extends T> Optional<E> findNearest(Vector2D center, double maxRadius, Class<E> typeClass, Predicate<E> filter) {
         return queryEntitiesNear(center, maxRadius, typeClass).stream()
                 .filter(candidate -> filter == null || filter.test(candidate))
+                .filter(candidate -> {
+                    double concealment = getConcealmentForEntity(candidate);
+                    if (concealment <= 0.0) return true;
+                    double effectiveRadius = maxRadius * (1.0 - concealment);
+                    return center.distanceTo(candidate.getPosition()) <= effectiveRadius;
+                })
                 .min(Comparator.comparingDouble(candidate -> center.distanceTo(candidate.getPosition())));
     }
 

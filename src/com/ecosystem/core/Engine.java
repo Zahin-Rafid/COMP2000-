@@ -9,6 +9,10 @@ import com.ecosystem.grid.Cell;
 import com.ecosystem.grid.SpatialGrid;
 import com.ecosystem.model.Entity;
 import com.ecosystem.model.Organism;
+import com.ecosystem.model.decorator.AdrenalineBuff;
+import com.ecosystem.model.decorator.CamouflageBuff;
+import com.ecosystem.model.decorator.InfectedDebuff;
+import com.ecosystem.model.decorator.OrganismDecorator;
 import com.ecosystem.model.entities.*;
 import com.ecosystem.util.EcosystemCollectors;
 import com.ecosystem.util.EcosystemSummary;
@@ -105,6 +109,7 @@ public class Engine {
         }
 
         grid.synchronizeEntities();
+        recordStatistics();
     }
 
     private Vector2D findRandomValidPosition() {
@@ -121,14 +126,26 @@ public class Engine {
     }
 
     /**
-     * Advances simulation by deltaSeconds.
+     * Advances simulation by deltaSeconds when running.
      */
     public synchronized void update(double deltaSeconds) {
         if (!running) return;
+        executeStep(deltaSeconds);
+    }
 
+    /**
+     * Advances simulation by exactly one step regardless of paused state (used by Step button).
+     */
+    public synchronized void stepOnce(double deltaSeconds) {
+        executeStep(deltaSeconds);
+        recordStatistics();
+    }
+
+    private void executeStep(double deltaSeconds) {
         double effectiveDelta = deltaSeconds * speedMultiplier;
         totalSimulatedTime += effectiveDelta;
         totalTicks++;
+        EcosystemEventBus.getInstance().setCurrentTick(totalTicks);
 
         // Natural environmental regeneration
         grid.updateEnvironment(config.soilRegenRate() * effectiveDelta);
@@ -144,6 +161,13 @@ public class Engine {
                     entity.setPosition(safePos);
                 }
 
+                // Unwrap expired temporary Adrenaline decorators
+                if (entity instanceof AdrenalineBuff adrenaline && adrenaline.isExpired()) {
+                    try {
+                        grid.replaceEntity(adrenaline, adrenaline.getWrapped());
+                    } catch (EntityOutOfBoundsException ignored) {}
+                }
+
                 if (entity instanceof Organism org) {
                     if (org.getGeneration() > highestGeneration) {
                         highestGeneration = org.getGeneration();
@@ -152,7 +176,21 @@ public class Engine {
             }
         }
 
-        // Synchronize births and deaths
+        // Natural seed-bank germination to sustain Lotka-Volterra rebound cycles
+        if (totalTicks % 15 == 0) {
+            int plantCount = grid.queryEntities(Plant.class).size();
+            if (plantCount < 70) {
+                Vector2D seedPos = findRandomValidPosition();
+                Cell cell = grid.getCellAtWorldCoords(seedPos);
+                if (cell != null && cell.getSoilNutrients().getCurrentAmount() > 15.0) {
+                    try {
+                        grid.addEntity(Plant.createDefault(seedPos));
+                    } catch (EntityOutOfBoundsException ignored) {}
+                }
+            }
+        }
+
+        // Synchronize births, deaths, and decorator swaps
         grid.synchronizeEntities();
 
         // Record statistics and compute parallel metrics every 30 ticks
@@ -160,6 +198,15 @@ public class Engine {
             recordStatistics();
             checkEmergentDisasters();
         }
+    }
+
+    /**
+     * Thread-safe immediate entity spawning from interactive UI brush.
+     */
+    public synchronized void spawnEntity(Entity entity) throws EntityOutOfBoundsException {
+        grid.addEntity(entity);
+        grid.synchronizeEntities();
+        this.latestSummary = computeParallelEcosystemMetrics();
     }
 
     /**
@@ -203,62 +250,77 @@ public class Engine {
         int plants = grid.queryEntities(Plant.class).size();
         int herbivores = grid.queryEntities(Herbivore.class).size();
 
-        // Overcrowded plants can ignite a Wildfire
         if (plants > 180 && RNG.nextDouble() < 0.15) {
             triggerWildfire(findRandomValidPosition(), 120.0);
         }
 
-        // Severe herbivore overgrazing triggers Drought
         if (herbivores > 100 && RNG.nextDouble() < 0.10) {
             triggerDrought(0.5);
         }
     }
 
-    public void triggerWildfire(Vector2D origin, double radius) {
-        List<Plant> caughtInFire = grid.queryEntitiesNear(origin, radius, Plant.class);
+    public synchronized void triggerWildfire(Vector2D origin, double radius) {
+        Vector2D fireCenter = origin;
+        List<Plant> caughtInFire = grid.queryEntitiesNear(fireCenter, radius, Plant.class);
+        if (caughtInFire.isEmpty()) {
+            List<Plant> allPlants = grid.queryEntities(Plant.class);
+            if (!allPlants.isEmpty()) {
+                fireCenter = allPlants.get(RNG.nextInt(allPlants.size())).getPosition();
+                caughtInFire = grid.queryEntitiesNear(fireCenter, radius, Plant.class);
+            }
+        }
         for (Plant plant : caughtInFire) {
             plant.markDead();
-            // Drop nutrient ash into soil
             Cell cell = grid.getCellAtWorldCoords(plant.getPosition());
             if (cell != null) {
                 cell.getSoilNutrients().replenish(25.0);
             }
         }
+        grid.synchronizeEntities();
+        this.latestSummary = computeParallelEcosystemMetrics();
         EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
                 EcosystemEventType.ENVIRONMENTAL_DISASTER,
-                "Wildfire burned " + caughtInFire.size() + " plants across sector",
-                origin,
+                "Wildfire burned " + caughtInFire.size() + " plants",
+                fireCenter,
                 totalTicks,
                 null
         ));
     }
 
-    public void triggerDrought(double severity) {
+    public synchronized void triggerDrought(double severity) {
         for (int x = 0; x < grid.getCols(); x++) {
             for (int y = 0; y < grid.getRows(); y++) {
                 Cell cell = grid.getCellAtGridCoords(x, y);
                 if (cell != null) {
                     try {
                         cell.getSoilNutrients().consume(cell.getSoilNutrients().getCurrentAmount() * severity);
+                        cell.getMoisture().consume(cell.getMoisture().getCurrentAmount() * severity);
                     } catch (Exception ignored) {}
                 }
             }
         }
+        // Inflict mild dehydration stress on plants so drought has immediate trophic impact
+        for (Plant plant : grid.queryEntities(Plant.class)) {
+            plant.consumeEnergy(plant.getEnergy() * (severity * 0.25));
+        }
+        grid.synchronizeEntities();
+        this.latestSummary = computeParallelEcosystemMetrics();
         EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
                 EcosystemEventType.ENVIRONMENTAL_DISASTER,
-                "Severe Drought depleted soil nutrients across all biomes",
+                "Severe Drought depleted soil & moisture",
                 new Vector2D(config.worldWidth() / 2, config.worldHeight() / 2),
                 totalTicks,
                 null
         ));
     }
 
-    public void triggerFertileBloom() {
+    public synchronized void triggerFertileBloom() {
         for (int x = 0; x < grid.getCols(); x++) {
             for (int y = 0; y < grid.getRows(); y++) {
                 Cell cell = grid.getCellAtGridCoords(x, y);
                 if (cell != null && cell.getBiome().isTraversableByLand()) {
                     cell.getSoilNutrients().replenish(40.0);
+                    cell.getMoisture().replenish(30.0);
                 }
             }
         }
@@ -271,13 +333,78 @@ public class Engine {
             }
         }
         grid.synchronizeEntities();
+        this.latestSummary = computeParallelEcosystemMetrics();
         EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
                 EcosystemEventType.FERTILE_BLOOM,
-                "Fertile Monsoon Bloom triggered rapid autotrophic proliferation",
+                "Monsoon Bloom spawned 25 plants",
                 new Vector2D(config.worldWidth() / 2, config.worldHeight() / 2),
                 totalTicks,
                 null
         ));
+    }
+
+    /**
+     * Dynamically wraps a healthy organism with the InfectedDebuff decorator.
+     */
+    public synchronized boolean infectRandomOrganism() {
+        List<Organism> candidates = grid.queryEntities(Organism.class).stream()
+                .filter(o -> !OrganismDecorator.hasDecorator(o, InfectedDebuff.class))
+                .filter(o -> o instanceof Animal || (o instanceof OrganismDecorator dec && dec.unwrap() instanceof Animal))
+                .toList();
+
+        if (candidates.isEmpty()) {
+            candidates = grid.queryEntities(Organism.class).stream()
+                    .filter(o -> !OrganismDecorator.hasDecorator(o, InfectedDebuff.class))
+                    .toList();
+        }
+        if (candidates.isEmpty()) return false;
+
+        Organism target = candidates.get(RNG.nextInt(candidates.size()));
+        try {
+            grid.replaceEntity(target, new InfectedDebuff(target, 2.5));
+            grid.synchronizeEntities();
+            EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                    EcosystemEventType.TROPHIC_COLLAPSE_WARNING,
+                    "Pathogen outbreak infected " + target.getSpeciesName(),
+                    target.getPosition(),
+                    totalTicks,
+                    target
+            ));
+            return true;
+        } catch (EntityOutOfBoundsException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Dynamically wraps a random Herbivore or Animal with CamouflageBuff or AdrenalineBuff.
+     */
+    public synchronized boolean buffRandomOrganism() {
+        List<Organism> candidates = grid.queryEntities(Organism.class).stream()
+                .filter(o -> o instanceof Animal || (o instanceof OrganismDecorator dec && dec.unwrap() instanceof Animal))
+                .filter(o -> !OrganismDecorator.hasDecorator(o, CamouflageBuff.class))
+                .toList();
+
+        if (candidates.isEmpty()) return false;
+        Organism target = candidates.get(RNG.nextInt(candidates.size()));
+        try {
+            Organism decorated = (target instanceof Herbivore || (target instanceof OrganismDecorator dec && dec.unwrap() instanceof Herbivore))
+                    ? new CamouflageBuff(target, 0.5)
+                    : new AdrenalineBuff(target, 6.0);
+            String buffName = (decorated instanceof CamouflageBuff) ? "Camouflage" : "Adrenaline";
+            grid.replaceEntity(target, decorated);
+            grid.synchronizeEntities();
+            EcosystemEventBus.getInstance().publish(EcosystemEvent.of(
+                    EcosystemEventType.SPECIES_DOMINANCE,
+                    buffName + " trait applied to " + target.getSpeciesName(),
+                    target.getPosition(),
+                    totalTicks,
+                    decorated
+            ));
+            return true;
+        } catch (EntityOutOfBoundsException e) {
+            return false;
+        }
     }
 
     public SpatialGrid<Entity> getGrid() {
@@ -344,7 +471,7 @@ public class Engine {
         return latestSummary;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         this.running = false;
         List<Entity> all = grid.getAllEntitiesSnapshot();
         for (Entity e : all) {
@@ -359,6 +486,7 @@ public class Engine {
         highestGeneration = 1;
         totalTicks = 0;
         totalSimulatedTime = 0.0;
+        EcosystemEventBus.getInstance().setCurrentTick(0);
         populateWorld();
         this.running = true;
     }

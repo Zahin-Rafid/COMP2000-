@@ -30,6 +30,7 @@ public class FleeingState implements AnimalState {
             if (otherThreat.isPresent()) {
                 threat = otherThreat.get();
             } else {
+                animal.setSprinting(false);
                 animal.changeState(new WanderingState());
                 return;
             }
@@ -45,8 +46,9 @@ public class FleeingState implements AnimalState {
             return;
         }
 
-        if (animal.getEnergy() < animal.getMaxEnergy() * 0.08) {
-            // Collapsed from exhaustion
+        if (animal.getEnergy() < animal.getMaxEnergy() * 0.10) {
+            // Collapsed from exhaustion -> enter RestingState
+            animal.setSprinting(false);
             animal.changeState(new RestingState());
             return;
         }
@@ -67,4 +69,3 @@ public class FleeingState implements AnimalState {
         return STATUS_COLOR;
     }
 }
-

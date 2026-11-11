@@ -37,6 +37,36 @@ public abstract class OrganismDecorator extends Organism {
         return wrapped;
     }
 
+    /**
+     * Traverses nested decorators to obtain the innermost concrete Organism.
+     */
+    public Organism unwrap() {
+        Organism current = wrapped;
+        while (current instanceof OrganismDecorator dec) {
+            current = dec.getWrapped();
+        }
+        return current;
+    }
+
+    /**
+     * Checks whether this decorator chain contains a specific decorator type.
+     */
+    public static boolean hasDecorator(Organism org, Class<? extends OrganismDecorator> decoratorClass) {
+        Organism current = org;
+        while (current instanceof OrganismDecorator dec) {
+            if (decoratorClass.isInstance(dec)) {
+                return true;
+            }
+            current = dec.getWrapped();
+        }
+        return false;
+    }
+
+    @Override
+    public long getId() {
+        return wrapped.getId();
+    }
+
     @Override
     public Vector2D getPosition() {
         return wrapped.getPosition();
@@ -53,13 +83,43 @@ public abstract class OrganismDecorator extends Organism {
     }
 
     @Override
+    public void setAlive(boolean alive) {
+        wrapped.setAlive(alive);
+    }
+
+    @Override
     public void markDead() {
         wrapped.markDead();
     }
 
     @Override
+    public double getRadius() {
+        return wrapped.getRadius();
+    }
+
+    @Override
+    public void setRadius(double radius) {
+        wrapped.setRadius(radius);
+    }
+
+    @Override
+    public Color getColor() {
+        return wrapped.getColor();
+    }
+
+    @Override
+    public void setColor(Color color) {
+        wrapped.setColor(color);
+    }
+
+    @Override
     public double getEnergy() {
         return wrapped.getEnergy();
+    }
+
+    @Override
+    public void setEnergy(double energy) {
+        wrapped.setEnergy(energy);
     }
 
     @Override
@@ -73,8 +133,23 @@ public abstract class OrganismDecorator extends Organism {
     }
 
     @Override
+    public double getMaxEnergy() {
+        return wrapped.getMaxEnergy();
+    }
+
+    @Override
     public double getAge() {
         return wrapped.getAge();
+    }
+
+    @Override
+    public double getMaxAge() {
+        return wrapped.getMaxAge();
+    }
+
+    @Override
+    public double getReproductionThreshold() {
+        return wrapped.getReproductionThreshold();
     }
 
     @Override
@@ -88,8 +163,18 @@ public abstract class OrganismDecorator extends Organism {
     }
 
     @Override
+    public String getSpeciesName() {
+        return wrapped.getSpeciesName();
+    }
+
+    @Override
     public boolean canReproduce() {
         return wrapped.canReproduce();
+    }
+
+    @Override
+    public void burnBaseMetabolism(double deltaSeconds) {
+        wrapped.burnBaseMetabolism(deltaSeconds);
     }
 
     @Override
