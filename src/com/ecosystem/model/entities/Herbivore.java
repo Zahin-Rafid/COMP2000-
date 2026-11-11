@@ -98,6 +98,7 @@ public class Herbivore extends Animal {
             ));
             return baby;
         } catch (InvalidGenomeException e) {
+            System.err.println("Skipped invalid Herbivore genome during breeding: " + e.getMessage());
             return null;
         }
     }

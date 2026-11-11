@@ -133,7 +133,7 @@ public final class ControlPanel extends JPanel {
         add(heatmapCheck);
     }
 
-    private JButton createStyledButton(String text, Color bg) {
+    private static JButton createStyledButton(String text, Color bg) {
         JButton btn = new JButton(text);
         btn.setBackground(bg);
         btn.setForeground(Color.WHITE);

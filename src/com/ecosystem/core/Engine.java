@@ -137,6 +137,7 @@ public final class Engine {
                 try {
                     entity.update(grid, effectiveDelta);
                 } catch (EntityOutOfBoundsException e) {
+                    System.err.println("Boundary clamp applied (" + e.getMessage() + ")");
                     Vector2D safePos = entity.getPosition().clamp(10, 10, config.worldWidth() - 10, config.worldHeight() - 10);
                     entity.setPosition(safePos);
                 }
@@ -353,6 +354,7 @@ public final class Engine {
             ));
             return true;
         } catch (EntityOutOfBoundsException e) {
+            System.err.println("Failed to infect organism: " + e.getMessage());
             return false;
         }
     }
@@ -384,6 +386,7 @@ public final class Engine {
             ));
             return true;
         } catch (EntityOutOfBoundsException e) {
+            System.err.println("Failed to apply trait buff: " + e.getMessage());
             return false;
         }
     }

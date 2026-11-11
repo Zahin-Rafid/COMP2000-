@@ -67,7 +67,7 @@ public class Decomposer extends Organism {
                     cell.getSoilNutrients().replenish(harvested * 0.7);
                 }
             } catch (ResourceDepletedException e) {
-                // Carcass consumed
+                food.markDead();
             }
         }
 
@@ -92,6 +92,7 @@ public class Decomposer extends Organism {
             Genome childGenome = getGenome().mutate();
             return new Decomposer(babyPos, 20.0, childGenome, getGeneration() + 1);
         } catch (InvalidGenomeException e) {
+            System.err.println("Skipped invalid Decomposer genome during reproduction: " + e.getMessage());
             return null;
         }
     }

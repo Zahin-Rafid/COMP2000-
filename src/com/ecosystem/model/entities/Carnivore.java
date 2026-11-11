@@ -120,6 +120,7 @@ public class Carnivore extends Animal {
             ));
             return baby;
         } catch (InvalidGenomeException e) {
+            System.err.println("Skipped invalid Carnivore genome during breeding: " + e.getMessage());
             return null;
         }
     }

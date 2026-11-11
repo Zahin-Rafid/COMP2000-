@@ -155,7 +155,7 @@ public final class StatisticsHUD extends JPanel {
         drawLineSeries(g2, apex, new Color(140, 20, 180), x, y + 20, w, h - 25, maxVal);
     }
 
-    private void drawLineSeries(Graphics2D g2, List<Integer> series, Color color, int x, int y, int w, int h, int maxVal) {
+    private static void drawLineSeries(Graphics2D g2, List<Integer> series, Color color, int x, int y, int w, int h, int maxVal) {
         g2.setColor(color);
         int n = series.size();
         for (int i = 0; i < n - 1; i++) {
@@ -194,7 +194,7 @@ public final class StatisticsHUD extends JPanel {
         g2.setClip(oldClip);
     }
 
-    private void drawLegend(Graphics2D g2, int x, int y) {
+    private static void drawLegend(Graphics2D g2, int x, int y) {
         g2.setFont(new Font("SansSerif", Font.PLAIN, 10));
         g2.setColor(new Color(150, 160, 170));
         g2.drawString("States & Decorators:", x, y);
@@ -212,7 +212,7 @@ public final class StatisticsHUD extends JPanel {
         drawLegendDot(g2, "Adren.", new Color(255, 140, 0), x + 215, rowY);
     }
 
-    private void drawLegendDot(Graphics2D g2, String label, Color color, int x, int y) {
+    private static void drawLegendDot(Graphics2D g2, String label, Color color, int x, int y) {
         g2.setColor(color);
         g2.fillOval(x, y - 7, 7, 7);
         g2.setColor(new Color(195, 205, 215));

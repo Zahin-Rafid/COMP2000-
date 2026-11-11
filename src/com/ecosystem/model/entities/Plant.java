@@ -103,6 +103,7 @@ public class Plant extends Organism {
             Genome childGenome = getGenome().mutate();
             return new Plant(childPos, 15.0, childGenome, getGeneration() + 1);
         } catch (InvalidGenomeException e) {
+            System.err.println("Skipped invalid Plant genome during reproduction: " + e.getMessage());
             return null; // Bad mutation filtered out
         }
     }

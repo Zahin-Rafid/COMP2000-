@@ -105,6 +105,7 @@ public class ApexPredator extends Animal {
                     baby));
             return baby;
         } catch (InvalidGenomeException e) {
+            System.err.println("Skipped invalid ApexPredator genome during breeding: " + e.getMessage());
             return null;
         }
     }
