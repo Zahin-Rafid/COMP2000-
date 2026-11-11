@@ -4,8 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Locale;
 
 /**
  * Pure Java Vector PDF Generator for the official COMP2000 Week 13 Design
@@ -27,57 +26,57 @@ public class DesignPatternPdfGenerator {
 
     public static void generatePdf(String filePath) throws IOException {
         ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
-        List<Long> offsets = new ArrayList<>();
+        long[] offsets = new long[8];
+
+        // Build Content Stream first so Page (obj 3) and Stream (obj 7) can be written in strict ID order
+        StringBuilder stream = new StringBuilder();
+        buildPdfGraphics(stream);
+        byte[] streamBytes = stream.toString().getBytes(StandardCharsets.ISO_8859_1);
 
         // Header
         write(pdfStream, "%PDF-1.4\n%\u00E2\u00E3\u00CF\u00D3\n");
 
         // Object 1: Catalog
-        offsets.add((long) pdfStream.size());
+        offsets[1] = pdfStream.size();
         write(pdfStream, "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
 
-        // Object 2: Pages (A3 Landscape: 1191 x 842 pt)
-        offsets.add((long) pdfStream.size());
+        // Object 2: Pages
+        offsets[2] = pdfStream.size();
         write(pdfStream, "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n");
 
+        // Object 3: Page Definition (A3 Landscape: 1191 x 842 pt)
+        offsets[3] = pdfStream.size();
+        write(pdfStream, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1191 842] " +
+                "/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>\nendobj\n");
+
         // Object 4: Font Helvetica
-        offsets.add((long) pdfStream.size());
-        write(pdfStream, "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
+        offsets[4] = pdfStream.size();
+        write(pdfStream, "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n");
 
         // Object 5: Font Helvetica-Bold
-        offsets.add((long) pdfStream.size());
-        write(pdfStream, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n");
+        offsets[5] = pdfStream.size();
+        write(pdfStream, "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj\n");
 
         // Object 6: Font Helvetica-Oblique
-        offsets.add((long) pdfStream.size());
-        write(pdfStream, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique >>\nendobj\n");
-
-        // Build Content Stream
-        StringBuilder stream = new StringBuilder();
-        buildPdfGraphics(stream);
-        byte[] streamBytes = stream.toString().getBytes(StandardCharsets.ISO_8859_1);
+        offsets[6] = pdfStream.size();
+        write(pdfStream, "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Oblique /Encoding /WinAnsiEncoding >>\nendobj\n");
 
         // Object 7: Content Stream
-        offsets.add((long) pdfStream.size());
+        offsets[7] = pdfStream.size();
         write(pdfStream, "7 0 obj\n<< /Length " + streamBytes.length + " >>\nstream\n");
         pdfStream.write(streamBytes);
         write(pdfStream, "\nendstream\nendobj\n");
 
-        // Object 3: Page Definition
-        offsets.add((long) pdfStream.size());
-        write(pdfStream, "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1191 842] " +
-                "/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>\nendobj\n");
-
-        // Cross-Reference Table
+        // Cross-Reference Table (strict object ID order 0..7)
         long xrefStart = pdfStream.size();
-        write(pdfStream, "xref\n0 " + (offsets.size() + 1) + "\n0000000000 65535 f \n");
-        for (Long off : offsets) {
-            write(pdfStream, String.format("%010d 00000 n \n", off));
+        write(pdfStream, "xref\n0 " + offsets.length + "\n0000000000 65535 f \n");
+        for (int i = 1; i < offsets.length; i++) {
+            write(pdfStream, String.format(Locale.ROOT, "%010d 00000 n \n", offsets[i]));
         }
 
         // Trailer
         write(pdfStream,
-                "trailer\n<< /Size " + (offsets.size() + 1) + " /Root 1 0 R >>\nstartxref\n" + xrefStart + "\n%%EOF\n");
+                "trailer\n<< /Size " + offsets.length + " /Root 1 0 R >>\nstartxref\n" + xrefStart + "\n%%EOF\n");
 
         try (FileOutputStream fos = new FileOutputStream(filePath)) {
             pdfStream.writeTo(fos);
@@ -158,7 +157,7 @@ public class DesignPatternPdfGenerator {
         drawUmlClass(sb, 810, 445, 165, 75, "Concrete Observer", "StatisticsHUD", "#dbeafe",
                 new String[] { "- recentEventLogs : List<String>" },
                 new String[] { "+ handleEcosystemEvent(e)" });
-        drawUmlClass(sb, 990, 445, 165, 75, "Immutable Record", "EcosystemEvent", "#dbeafe",
+        drawUmlClass(sb, 990, 435, 165, 85, "Immutable Record", "EcosystemEvent", "#dbeafe",
                 new String[] { "- type : EcosystemEventType", "- message : String", "- tick : long" },
                 new String[] { "+ of(type, msg, pos, t, src)" });
 
@@ -195,8 +194,9 @@ public class DesignPatternPdfGenerator {
         packageBox(sb, 495, 45, 670, 365, "5. FUNCTIONAL PROGRAMMING & PARALLEL STREAMS ARCHITECTURE");
 
         drawUmlClass(sb, 505, 230, 290, 145, "Utility Class", "EcosystemCollectors", "#ecfdf5",
-                new String[] { "- toEcosystemSummary() : Collector<Entity, ?, EcosystemSummary>" },
-                new String[] { "+ Accumulator.accumulate(entity)", "+ Accumulator.merge(other)",
+                new String[] {},
+                new String[] { "+ toEcosystemSummary() : Collector<Entity, ?, EcosystemSummary>",
+                        "+ Accumulator.accumulate(entity)", "+ Accumulator.merge(other)",
                         "+ Accumulator.finish() : EcosystemSummary" });
         drawUmlClass(sb, 815, 230, 340, 145, "Immutable Record", "EcosystemSummary", "#ecfdf5",
                 new String[] { "- speciesCounts : Map<String, Long>", "- totalBiomass : double",
@@ -270,21 +270,21 @@ public class DesignPatternPdfGenerator {
     }
 
     private static void rect(StringBuilder sb, int x, int y, int w, int h, float r, float g, float b, boolean fill) {
-        sb.append(String.format("%.3f %.3f %.3f %s\n", r, g, b, fill ? "rg" : "RG"));
-        sb.append(String.format("%d %d %d %d re %s\n", x, y, w, h, fill ? "f" : "S"));
+        sb.append(String.format(Locale.ROOT, "%.3f %.3f %.3f %s\n", r, g, b, fill ? "rg" : "RG"));
+        sb.append(String.format(Locale.ROOT, "%d %d %d %d re %s\n", x, y, w, h, fill ? "f" : "S"));
     }
 
     private static void line(StringBuilder sb, int x1, int y1, int x2, int y2, float r, float g, float b) {
-        sb.append(String.format("%.3f %.3f %.3f RG\n", r, g, b));
-        sb.append(String.format("%d %d m %d %d l S\n", x1, y1, x2, y2));
+        sb.append(String.format(Locale.ROOT, "%.3f %.3f %.3f RG\n", r, g, b));
+        sb.append(String.format(Locale.ROOT, "%d %d m %d %d l S\n", x1, y1, x2, y2));
     }
 
     private static void text(StringBuilder sb, int x, int y, String font, int size, float r, float g, float b,
             String str) {
         sb.append("BT\n");
-        sb.append(String.format("%s %d Tf\n", font, size));
-        sb.append(String.format("%.3f %.3f %.3f rg\n", r, g, b));
-        sb.append(String.format("%d %d Td\n", x, y));
+        sb.append(String.format(Locale.ROOT, "%s %d Tf\n", font, size));
+        sb.append(String.format(Locale.ROOT, "%.3f %.3f %.3f rg\n", r, g, b));
+        sb.append(String.format(Locale.ROOT, "%d %d Td\n", x, y));
         sb.append("(").append(escapePdf(str)).append(") Tj\n");
         sb.append("ET\n");
     }
